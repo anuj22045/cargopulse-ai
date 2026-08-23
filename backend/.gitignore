@@ -63,3 +63,5 @@ mlruns/
 # =========================
 *.sqlite
 *.db
+datasets/raw/
+datasets/processed/
