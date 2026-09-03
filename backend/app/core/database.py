@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
+from collections.abc import Generator
+
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
 BASE_DIR =Path(__file__).resolve().parents[2]
 ENV_FILE = BASE_DIR / ".env"
@@ -25,4 +27,14 @@ SessionLocal = sessionmaker(
     bind=engine
 )
 
+#BASE CLASS FOR SQLAlchemy MODELS
 Base = declarative_base()
+
+##FASTAPI DATABASE DEPENDENCY
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
+
+    try:
+        yield db
+    finally:
+        db.close()
