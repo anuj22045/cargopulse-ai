@@ -1,9 +1,16 @@
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.api.shipments import router as shipment_router
+from app.api.shipment_events import router as shipment_event_router
+from app.api.ai_predictions import router as ai_prediction_router
+from app.api.simulation_events import router as simulation_event_router
+from app.api.ai_recommendations import router as ai_recommendation_router
+from app.api.decision_history import router as decision_history_router
 
 
 app = FastAPI(
@@ -11,6 +18,24 @@ app = FastAPI(
     version="0.1.0"
 )
 
+app.include_router(shipment_router)
+app.include_router(shipment_event_router)
+app.include_router(ai_prediction_router)
+app.include_router(simulation_event_router)
+app.include_router(ai_recommendation_router)
+app.include_router(decision_history_router)
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(
+    request: Request,
+    exc: SQLAlchemyError
+):
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "A database error occurred."
+        }
+    )
 
 @app.get("/")
 def root():
