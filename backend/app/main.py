@@ -13,6 +13,7 @@ from app.api.ai_predictions import router as ai_prediction_router
 from app.api.simulation_events import router as simulation_event_router
 from app.api.ai_recommendations import router as ai_recommendation_router
 from app.api.decision_history import router as decision_history_router
+from app.api.dashboard import router as dashboard_router
 
 
 
@@ -21,10 +22,21 @@ app = FastAPI(
     version="0.1.0"
 )
 
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=[
+#         "http://localhost:5173",
+#     ],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -37,6 +49,7 @@ app.include_router(ai_prediction_router)
 app.include_router(simulation_event_router)
 app.include_router(ai_recommendation_router)
 app.include_router(decision_history_router)
+app.include_router(dashboard_router)
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(

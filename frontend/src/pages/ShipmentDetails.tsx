@@ -1,14 +1,131 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  MapPin,
+  Truck,
+  Calendar,
+  Activity,
+  Brain,
+  Lightbulb,
+  ClipboardList,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Info,
+} from "lucide-react";
 import { getShipment, type Shipment } from "../services/shipmentService";
-import { getShipmentPredictions, type AIPrediction } from "../services/aiPredictionService";
-import { getShipmentSimulationEvents, type SimulationEvent } from "../services/simulationService";
-import { getShipmentRecommendations, type AIRecommendation } from "../services/aiRecommendationService";
+import {
+  getShipmentPredictions,
+  type AIPrediction,
+} from "../services/aiPredictionService";
+import {
+  getShipmentSimulationEvents,
+  type SimulationEvent,
+} from "../services/simulationService";
+import {
+  getShipmentRecommendations,
+  type AIRecommendation,
+} from "../services/aiRecommendationService";
+import {
+  getShipmentDecisions,
+  type DecisionHistory,
+} from "../services/decisionService";
+import {
+  getShipmentEvents,
+  type ShipmentEvent,
+} from "../services/shipmentEventService";
 
-import { getShipmentDecisions, type DecisionHistory } from "../services/decisionService";
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-import { getShipmentEvents, type ShipmentEvent } from "../services/shipmentEventService";
+function StatusBadge({ status }: { status: string | null }) {
+  const map: Record<string, string> = {
+    Shipping: "bg-blue-100 text-blue-700 border-blue-200",
+    Shipped: "bg-purple-100 text-purple-700 border-purple-200",
+    Delivered: "bg-green-100 text-green-700 border-green-200",
+    "Late delivery": "bg-red-100 text-red-700 border-red-200",
+    Cancelled: "bg-slate-100 text-slate-600 border-slate-200",
+    "Suspected Fraud": "bg-orange-100 text-orange-700 border-orange-200",
+  };
+  const cls = status
+    ? (map[status] ?? "bg-slate-100 text-slate-600 border-slate-200")
+    : "bg-slate-100 text-slate-600 border-slate-200";
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium ${cls}`}
+    >
+      {status ?? "Unknown"}
+    </span>
+  );
+}
 
+function InfoCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50">
+        <Icon className="h-4 w-4 text-amber-500" />
+      </div>
+      <div>
+        <p className="text-xs text-slate-500">{label}</p>
+        <p className="mt-0.5 text-sm font-semibold text-slate-800">
+          {value ?? "—"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SectionCard({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
+        <Icon className="h-4 w-4 text-amber-500" />
+        <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+      </div>
+      <div className="px-5 py-4">{children}</div>
+    </div>
+  );
+}
+
+function EventTypeIcon({ type }: { type: string }) {
+  const t = type.toLowerCase();
+  if (t.includes("delay") || t.includes("late") || t.includes("risk"))
+    return <AlertTriangle className="h-3.5 w-3.5 text-red-500" />;
+  if (t.includes("deliver") || t.includes("complete") || t.includes("arrive"))
+    return <CheckCircle className="h-3.5 w-3.5 text-green-500" />;
+  if (t.includes("depart") || t.includes("ship") || t.includes("transit"))
+    return <Truck className="h-3.5 w-3.5 text-blue-500" />;
+  return <Info className="h-3.5 w-3.5 text-slate-400" />;
+}
+
+function formatDateTime(dt: string) {
+  try {
+    return new Date(dt).toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return dt;
+  }
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 
 function ShipmentDetails() {
   const { shipmentId } = useParams<{ shipmentId: string }>();
@@ -43,7 +160,7 @@ function ShipmentDetails() {
         const predictionData = await getShipmentPredictions(id);
         const simulationData = await getShipmentSimulationEvents(id);
         const recommendationData = await getShipmentRecommendations(id);
-        const decisionData =await getShipmentDecisions(id);
+        const decisionData = await getShipmentDecisions(id);
 
         setShipment(shipmentData);
         setEvents(eventData);
@@ -53,9 +170,7 @@ function ShipmentDetails() {
         setDecisions(decisionData);
       } catch (err) {
         setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load shipment"
+          err instanceof Error ? err.message : "Failed to load shipment"
         );
       } finally {
         setLoading(false);
@@ -66,315 +181,375 @@ function ShipmentDetails() {
   }, [shipmentId]);
 
   if (loading) {
-    return <p>Loading shipment...</p>;
+    return (
+      <div className="space-y-4">
+        <div className="h-10 w-48 animate-pulse rounded-lg bg-slate-200" />
+        <div className="h-24 animate-pulse rounded-xl bg-slate-200" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-200" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <p>Error: {error}</p>;
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {error}
+      </div>
+    );
   }
 
   if (!shipment) {
-    return <p>Shipment not found.</p>;
+    return (
+      <p className="text-sm text-slate-500">Shipment not found.</p>
+    );
   }
 
+  const latestPrediction = predictions[predictions.length - 1] ?? null;
+
   return (
-    <div>
-      <Link to="/shipments">
-        ← Back to Shipments
+    <div className="space-y-5">
+      {/* Back link */}
+      <Link
+        to="/shipments"
+        className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Shipments
       </Link>
 
-      <h1>Shipment Details</h1>
-
-      <h2>{shipment.shipment_reference}</h2>
-
-      <div>
-        <p>
-          <strong>Shipment ID:</strong> {shipment.id}
-        </p>
-
-        <p>
-          <strong>Order ID:</strong> {shipment.order_id}
-        </p>
-
-        <p>
-          <strong>Status:</strong> {shipment.shipment_status}
-        </p>
-
-        <p>
-          <strong>Shipping Mode:</strong> {shipment.shipping_mode}
-        </p>
-
-        <p>
-          <strong>Customer Segment:</strong>{" "}
-          {shipment.customer_segment}
-        </p>
-
-        <p>
-          <strong>Market:</strong> {shipment.market}
-        </p>
-
-        <p>
-          <strong>Region:</strong> {shipment.order_region}
-        </p>
-
-        <p>
-          <strong>Sales:</strong> {shipment.sales}
-        </p>
-
-        <p>
-          <strong>Profit per Order:</strong>{" "}
-          {shipment.profit_per_order}
-        </p>
-
-        <p>
-          <strong>Quantity:</strong> {shipment.quantity}
-        </p>
-
-        <p>
-          <strong>Scheduled Shipping Days:</strong>{" "}
-          {shipment.scheduled_shipping_days}
-        </p>
-
-        <p>
-          <strong>Current Latitude:</strong>{" "}
-          {shipment.current_latitude}
-        </p>
-
-        <p>
-          <strong>Current Longitude:</strong>{" "}
-          {shipment.current_longitude}
-        </p>
+      {/* Header card */}
+      <div className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
+        <div>
+          <p className="mb-1 text-xs text-slate-500">Shipment Reference</p>
+          <h1 className="text-xl font-bold text-slate-900">
+            {shipment.shipment_reference}
+          </h1>
+          <p className="mt-1 text-xs text-slate-400">
+            ID: {shipment.id} · Order: {shipment.order_id ?? "—"}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusBadge status={shipment.shipment_status} />
+          {latestPrediction && (
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium ${
+                latestPrediction.delay_probability >= 0.7
+                  ? "border-red-200 bg-red-100 text-red-700"
+                  : latestPrediction.delay_probability >= 0.4
+                  ? "border-amber-200 bg-amber-100 text-amber-700"
+                  : "border-green-200 bg-green-100 text-green-700"
+              }`}
+            >
+              <Activity className="h-3.5 w-3.5" />
+              Risk: {(latestPrediction.delay_probability * 100).toFixed(0)}%
+            </span>
+          )}
+        </div>
       </div>
 
-      <div>
-        <h2>Shipment Events</h2>
+      {/* Info cards grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <InfoCard
+          icon={Truck}
+          label="Shipping Mode"
+          value={shipment.shipping_mode}
+        />
+        <InfoCard
+          icon={MapPin}
+          label="Region / Market"
+          value={
+            shipment.order_region && shipment.market
+              ? `${shipment.order_region} · ${shipment.market}`
+              : shipment.order_region ?? shipment.market
+          }
+        />
+        <InfoCard
+          icon={Calendar}
+          label="Scheduled Days"
+          value={
+            shipment.scheduled_shipping_days
+              ? `${shipment.scheduled_shipping_days} days`
+              : null
+          }
+        />
+        <InfoCard
+          icon={MapPin}
+          label="Last Known Position"
+          value={
+            shipment.current_latitude && shipment.current_longitude
+              ? `${shipment.current_latitude.toFixed(4)}, ${shipment.current_longitude.toFixed(4)}`
+              : "Not available"
+          }
+        />
+      </div>
 
+      {/* Financials */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <InfoCard icon={Activity} label="Customer Segment" value={shipment.customer_segment} />
+        <InfoCard icon={Activity} label="Sales" value={shipment.sales ? `$${shipment.sales}` : null} />
+        <InfoCard icon={Activity} label="Profit / Order" value={shipment.profit_per_order ? `$${shipment.profit_per_order}` : null} />
+      </div>
+
+      {/* Placeholder — Risk & ETA charts (Week 2) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {["Delay Risk Over Time (Live — Phase 7)", "ETA Trend (Live — Phase 7)"].map(
+          (label) => (
+            <div
+              key={label}
+              className="flex h-48 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50"
+            >
+              <p className="text-xs text-slate-400">{label}</p>
+            </div>
+          )
+        )}
+      </div>
+
+      {/* Event timeline */}
+      <SectionCard title="Shipment Events" icon={Clock}>
         {events.length === 0 ? (
-          <p>No shipment events found.</p>
+          <p className="text-sm text-slate-400">No events recorded yet.</p>
         ) : (
-          <div>
+          <ol className="relative border-l border-slate-200 pl-6 space-y-5">
             {events.map((event) => (
-              <div key={event.id}>
-                <h3>{event.event_type}</h3>
+              <li key={event.id} className="relative">
+                {/* Dot */}
+                <span className="absolute -left-[22px] flex h-5 w-5 items-center justify-center rounded-full bg-white ring-2 ring-slate-200">
+                  <EventTypeIcon type={event.event_type} />
+                </span>
+                <div>
+                  <p className="text-xs text-slate-400">
+                    {formatDateTime(event.event_time)}
+                  </p>
+                  <p className="mt-0.5 text-sm font-semibold text-slate-800">
+                    {event.event_type}
+                  </p>
+                  {event.description && (
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {event.description}
+                    </p>
+                  )}
+                  {(event.latitude || event.longitude) && (
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      📍 {event.latitude?.toFixed(4)}, {event.longitude?.toFixed(4)}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </SectionCard>
 
-                <p>
-                  <strong>Description:</strong>{" "}
-                  {event.description || "No description"}
-                </p>
-
-                <p>
-                  <strong>Event Time:</strong>{" "}
-                  {event.event_time}
-                </p>
-
-                <p>
-                  <strong>Latitude:</strong>{" "}
-                  {event.latitude ?? "N/A"}
-                </p>
-
-                <p>
-                  <strong>Longitude:</strong>{" "}
-                  {event.longitude ?? "N/A"}
-                </p>
-
-                <hr />
+      {/* AI Predictions */}
+      <SectionCard title="AI Prediction History" icon={Brain}>
+        {predictions.length === 0 ? (
+          <p className="text-sm text-slate-400">No predictions available yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {predictions.map((p) => (
+              <div
+                key={p.id}
+                className="flex flex-wrap items-center gap-4 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3"
+              >
+                <div className="flex-1 min-w-[120px]">
+                  <p className="text-xs text-slate-500">Delay Probability</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
+                      <div
+                        className={`h-full rounded-full ${
+                          p.delay_probability >= 0.7
+                            ? "bg-red-500"
+                            : p.delay_probability >= 0.4
+                            ? "bg-amber-500"
+                            : "bg-green-500"
+                        }`}
+                        style={{ width: `${p.delay_probability * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-semibold text-slate-700">
+                      {(p.delay_probability * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Predicted ETA</p>
+                  <p className="text-xs font-medium text-slate-700">
+                    {p.predicted_eta ?? "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Confidence</p>
+                  <p className="text-xs font-medium text-slate-700">
+                    {p.confidence_score != null
+                      ? `${(p.confidence_score * 100).toFixed(0)}%`
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Model</p>
+                  <p className="text-xs font-medium text-slate-700">
+                    {p.model_version}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Time</p>
+                  <p className="text-xs text-slate-400">
+                    {formatDateTime(p.prediction_time)}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
         )}
-      </div>
-      <div>
-  <h2>AI Prediction History</h2>
+      </SectionCard>
 
-  {predictions.length === 0 ? (
-    <p>No AI predictions found.</p>
-  ) : (
-    <div>
-      {predictions.map((prediction) => (
-        <div key={prediction.id}>
-          <h3>
-            Prediction #{prediction.id}
-          </h3>
-
-          <p>
-            <strong>Delay Probability:</strong>{" "}
-            {(prediction.delay_probability * 100).toFixed(2)}%
-          </p>
-
-          <p>
-            <strong>Predicted ETA:</strong>{" "}
-            {prediction.predicted_eta || "N/A"}
-          </p>
-
-          <p>
-            <strong>Confidence:</strong>{" "}
-            {prediction.confidence_score !== null
-              ? `${(prediction.confidence_score * 100).toFixed(2)}%`
-              : "N/A"}
-          </p>
-
-          <p>
-            <strong>Model Version:</strong>{" "}
-            {prediction.model_version}
-          </p>
-
-          <p>
-            <strong>Prediction Time:</strong>{" "}
-            {prediction.prediction_time}
-          </p>
-
-            <hr />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-    <div>
-  <h2>Simulation History</h2>
-
-  {simulationEvents.length === 0 ? (
-    <p>No simulation events found.</p>
-  ) : (
-    <div>
-      {simulationEvents.map((simulation) => (
-        <div key={simulation.id}>
-          <h3>
-            Simulation #{simulation.id}
-          </h3>
-
-          <p>
-            <strong>Simulation Time:</strong>{" "}
-            {simulation.simulation_time}
-          </p>
-
-          <p>
-            <strong>Traffic:</strong>{" "}
-            {simulation.traffic_status || "N/A"}
-          </p>
-
-          <p>
-            <strong>Temperature:</strong>{" "}
-            {simulation.temperature ?? "N/A"}
-          </p>
-
-          <p>
-            <strong>Humidity:</strong>{" "}
-            {simulation.humidity ?? "N/A"}
-          </p>
-
-          <p>
-            <strong>Waiting Time:</strong>{" "}
-            {simulation.waiting_time ?? "N/A"}
-          </p>
-
-          <p>
-            <strong>Asset Utilization:</strong>{" "}
-            {simulation.asset_utilization ?? "N/A"}
-          </p>
-
-          <p>
-            <strong>Latitude:</strong>{" "}
-            {simulation.latitude ?? "N/A"}
-          </p>
-
-              <p>
-            <strong>Longitude:</strong>{" "}
-            {simulation.longitude ?? "N/A"}
-              </p>
-
-              <hr />
-            </div>
-          ))}
-        </div>
-      )}
-      </div>
-      <div>
-  <h2>AI Recommendations</h2>
-
-  {recommendations.length === 0 ? (
-    <p>No AI recommendations found.</p>
-  ) : (
-    <div>
-      {recommendations.map((recommendation) => (
-        <div key={recommendation.id}>
-          <h3>
-            {recommendation.recommended_action}
-          </h3>
-
-          <p>
-            <strong>Reason:</strong>{" "}
-            {recommendation.reason || "No reason provided"}
-          </p>
-
-          <p>
-            <strong>Expected Delay Reduction:</strong>{" "}
-            {recommendation.expected_delay_reduction ?? "N/A"}
-          </p>
-
-          <p>
-            <strong>Expected Cost:</strong>{" "}
-            {recommendation.expected_cost ?? "N/A"}
-          </p>
-
-          <p>
-            <strong>Confidence:</strong>{" "}
-            {recommendation.confidence_score !== null
-              ? `${(
-                  recommendation.confidence_score * 100
-                ).toFixed(2)}%`
-              : "N/A"}
-          </p>
-
-          <p>
-            <strong>Created At:</strong>{" "}
-            {recommendation.created_at}
-          </p>
-
-          <hr />
+      {/* Simulation History */}
+      <SectionCard title="Simulation History" icon={Activity}>
+        {simulationEvents.length === 0 ? (
+          <p className="text-sm text-slate-400">No simulation events yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-3 py-2">Time</th>
+                  <th className="px-3 py-2">Traffic</th>
+                  <th className="px-3 py-2">Temp (°C)</th>
+                  <th className="px-3 py-2">Humidity</th>
+                  <th className="px-3 py-2">Wait (h)</th>
+                  <th className="px-3 py-2">Asset Util.</th>
+                  <th className="px-3 py-2">Position</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {simulationEvents.map((s) => (
+                  <tr key={s.id} className="hover:bg-slate-50">
+                    <td className="px-3 py-2 text-slate-500">
+                      {formatDateTime(s.simulation_time)}
+                    </td>
+                    <td className="px-3 py-2 text-slate-700">
+                      {s.traffic_status ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 text-slate-700">
+                      {s.temperature ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 text-slate-700">
+                      {s.humidity ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 text-slate-700">
+                      {s.waiting_time ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 text-slate-700">
+                      {s.asset_utilization ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 text-slate-500">
+                      {s.latitude && s.longitude
+                        ? `${s.latitude.toFixed(3)}, ${s.longitude.toFixed(3)}`
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          ))}
-        </div>
-      )}
-    </div>
-    <div>
-  <h2>Decision History</h2>
+        )}
+      </SectionCard>
 
-  {decisions.length === 0 ? (
-    <p>No decisions found.</p>
-  ) : (
-    <div>
-      {decisions.map((decision) => (
-        <div key={decision.id}>
-          <h3>
-            Decision: {decision.decision}
-          </h3>
-
-          <p>
-            <strong>Recommendation ID:</strong>{" "}
-            {decision.recommendation_id ?? "N/A"}
-          </p>
-
-          <p>
-            <strong>Reason:</strong>{" "}
-            {decision.decision_reason || "No reason provided"}
-          </p>
-
-          <p>
-            <strong>Actual Outcome:</strong>{" "}
-            {decision.actual_outcome || "Not available"}
-          </p>
-
-          <p>
-            <strong>Created At:</strong>{" "}
-            {decision.created_at}
-          </p>
-
-          <hr />
+      {/* AI Recommendations */}
+      <SectionCard title="AI Recommendations" icon={Lightbulb}>
+        {recommendations.length === 0 ? (
+          <p className="text-sm text-slate-400">No recommendations available yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {recommendations.map((r) => (
+              <div
+                key={r.id}
+                className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3"
+              >
+                <p className="text-sm font-semibold text-slate-800">
+                  {r.recommended_action}
+                </p>
+                {r.reason && (
+                  <p className="mt-1 text-xs text-slate-600">{r.reason}</p>
+                )}
+                <div className="mt-2 flex flex-wrap gap-4">
+                  {r.expected_delay_reduction != null && (
+                    <span className="text-xs text-slate-500">
+                      Delay reduction:{" "}
+                      <strong className="text-green-600">
+                        {r.expected_delay_reduction}h
+                      </strong>
+                    </span>
+                  )}
+                  {r.expected_cost && (
+                    <span className="text-xs text-slate-500">
+                      Est. cost: <strong>${r.expected_cost}</strong>
+                    </span>
+                  )}
+                  {r.confidence_score != null && (
+                    <span className="text-xs text-slate-500">
+                      Confidence:{" "}
+                      <strong>
+                        {(r.confidence_score * 100).toFixed(0)}%
+                      </strong>
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-400">
+                    {formatDateTime(r.created_at)}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
-          ))}
-        </div>
-      )}
-    </div>
+        )}
+      </SectionCard>
+
+      {/* Decision History */}
+      <SectionCard title="Decision History" icon={ClipboardList}>
+        {decisions.length === 0 ? (
+          <p className="text-sm text-slate-400">No decisions recorded yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {decisions.map((d) => (
+              <div
+                key={d.id}
+                className="flex flex-wrap items-start gap-4 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3"
+              >
+                <div className="flex-1 min-w-[160px]">
+                  <p className="text-xs text-slate-500">Decision</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {d.decision}
+                  </p>
+                </div>
+                {d.decision_reason && (
+                  <div className="flex-1 min-w-[160px]">
+                    <p className="text-xs text-slate-500">Reason</p>
+                    <p className="text-xs text-slate-700">{d.decision_reason}</p>
+                  </div>
+                )}
+                {d.actual_outcome && (
+                  <div>
+                    <p className="text-xs text-slate-500">Outcome</p>
+                    <p className="text-xs font-medium text-slate-700">
+                      {d.actual_outcome}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs text-slate-500">Recorded</p>
+                  <p className="text-xs text-slate-400">
+                    {formatDateTime(d.created_at)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
     </div>
   );
 }
