@@ -15,11 +15,24 @@ from app.api.ai_recommendations import router as ai_recommendation_router
 from app.api.decision_history import router as decision_history_router
 from app.api.dashboard import router as dashboard_router
 
+#auto simulation 
+from contextlib import asynccontextmanager
+from app.core.scheduler import start_scheduler, stop_scheduler
+from app.api.websocket import router as websocket_router
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+
+    yield
+
+    stop_scheduler()
 
 app = FastAPI(
     title="CargoPulse AI API",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
 # app.add_middleware(
@@ -50,6 +63,7 @@ app.include_router(simulation_event_router)
 app.include_router(ai_recommendation_router)
 app.include_router(decision_history_router)
 app.include_router(dashboard_router)
+app.include_router(websocket_router)
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(
@@ -99,3 +113,6 @@ def database_health_check(db: Session = Depends(get_db)):
 
 # cd backend
 # python -m uvicorn app.main:app --reload
+
+#to run postgresql
+# psql -U postgres -d cargopulse_ai
