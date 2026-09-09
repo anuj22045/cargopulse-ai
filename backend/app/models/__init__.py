@@ -1,4 +1,5 @@
 from app.models.user import User
+# from backend.app.models.user import User
 from app.models.carrier import Carrier
 from app.models.route import Route
 from app.models.shipment import Shipment

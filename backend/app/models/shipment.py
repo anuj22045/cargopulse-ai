@@ -103,6 +103,22 @@ class Shipment(Base):
         nullable=False
     )
 
+    total_distance_km: Mapped[float | None] = mapped_column(
+    Float,
+    nullable=True
+    )
+
+    distance_remaining_km: Mapped[float | None] = mapped_column(
+    Float,
+    nullable=True
+    )
+
+    simulation_elapsed_minutes: Mapped[int] = mapped_column(
+    Integer,
+    default=0,
+    nullable=False
+    )
+
     carrier = relationship(
         "Carrier",
         back_populates = "shipments"
