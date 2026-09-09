@@ -13,6 +13,7 @@ import {
   CheckCircle,
   Clock,
   Info,
+  Navigation,
 } from "lucide-react";
 import { getShipment, type Shipment } from "../services/shipmentService";
 import {
@@ -99,6 +100,64 @@ function SectionCard({
         <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
       </div>
       <div className="px-5 py-4">{children}</div>
+    </div>
+  );
+}
+
+// ─── Risk Gauge ───────────────────────────────────────────────────────────────
+
+function RiskGauge({ probability }: { probability: number }) {
+  const pct = Math.min(Math.max(probability, 0), 1);
+  const radius = 34;
+  const circ = 2 * Math.PI * radius;
+  // Only fill the top 75% of the circle (like a speedometer arc)
+  const arcFraction = 0.75;
+  const dashArray = circ * arcFraction;
+  const dashOffset = dashArray * (1 - pct);
+  const rotate = -225; // start from bottom-left
+
+  const color =
+    pct >= 0.7 ? "#ef4444" : pct >= 0.4 ? "#f59e0b" : "#22c55e";
+  const label =
+    pct >= 0.7 ? "High Risk" : pct >= 0.4 ? "Med Risk" : "Low Risk";
+
+  return (
+    <div className="flex flex-col items-center">
+      <svg width="88" height="72" viewBox="0 0 88 72">
+        {/* Track */}
+        <circle
+          cx="44" cy="52" r={radius}
+          fill="none"
+          stroke="#e2e8f0"
+          strokeWidth="8"
+          strokeDasharray={`${dashArray} ${circ}`}
+          strokeDashoffset={0}
+          strokeLinecap="round"
+          transform={`rotate(${rotate} 44 52)`}
+        />
+        {/* Fill */}
+        <circle
+          cx="44" cy="52" r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth="8"
+          strokeDasharray={`${dashArray} ${circ}`}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="round"
+          transform={`rotate(${rotate} 44 52)`}
+          style={{ transition: "stroke-dashoffset 0.6s ease" }}
+        />
+        {/* Center text */}
+        <text x="44" y="56" textAnchor="middle" fontSize="13" fontWeight="700" fill={color}>
+          {(pct * 100).toFixed(0)}%
+        </text>
+      </svg>
+      <span
+        className="-mt-1 text-[10px] font-semibold uppercase tracking-wide"
+        style={{ color }}
+      >
+        {label}
+      </span>
     </div>
   );
 }
@@ -232,21 +291,10 @@ function ShipmentDetails() {
             ID: {shipment.id} · Order: {shipment.order_id ?? "—"}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-4">
           <StatusBadge status={shipment.shipment_status} />
           {latestPrediction && (
-            <span
-              className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium ${
-                latestPrediction.delay_probability >= 0.7
-                  ? "border-red-200 bg-red-100 text-red-700"
-                  : latestPrediction.delay_probability >= 0.4
-                  ? "border-amber-200 bg-amber-100 text-amber-700"
-                  : "border-green-200 bg-green-100 text-green-700"
-              }`}
-            >
-              <Activity className="h-3.5 w-3.5" />
-              Risk: {(latestPrediction.delay_probability * 100).toFixed(0)}%
-            </span>
+            <RiskGauge probability={latestPrediction.delay_probability} />
           )}
         </div>
       </div>
@@ -292,6 +340,43 @@ function ShipmentDetails() {
         <InfoCard icon={Activity} label="Customer Segment" value={shipment.customer_segment} />
         <InfoCard icon={Activity} label="Sales" value={shipment.sales ? `$${shipment.sales}` : null} />
         <InfoCard icon={Activity} label="Profit / Order" value={shipment.profit_per_order ? `$${shipment.profit_per_order}` : null} />
+      </div>
+
+      {/* Map placeholder */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
+          <Navigation className="h-4 w-4 text-amber-500" />
+          <h2 className="text-sm font-semibold text-slate-800">Route Map</h2>
+          <span className="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+            Phase 7 — Live tracking
+          </span>
+        </div>
+        <div className="relative flex h-52 items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+          {/* Grid pattern */}
+          <svg className="absolute inset-0 h-full w-full opacity-30" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#94a3b8" strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
+          {/* Route line placeholder */}
+          <svg className="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
+            <line x1="15%" y1="50%" x2="85%" y2="50%" stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 4" opacity="0.6" />
+            <circle cx="15%" cy="50%" r="6" fill="#22c55e" opacity="0.8" />
+            <circle cx="85%" cy="50%" r="6" fill="#ef4444" opacity="0.8" />
+          </svg>
+          <div className="z-10 flex flex-col items-center gap-2 text-center">
+            <MapPin className="h-8 w-8 text-slate-300" />
+            <p className="text-sm font-medium text-slate-500">Interactive map coming in Phase 7</p>
+            {shipment.current_latitude && shipment.current_longitude && (
+              <p className="text-xs text-slate-400">
+                Current position: {shipment.current_latitude.toFixed(4)}, {shipment.current_longitude.toFixed(4)}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Placeholder — Risk & ETA charts (Week 2) */}

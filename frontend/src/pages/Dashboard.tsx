@@ -158,19 +158,16 @@ function Dashboard() {
             {stats.status_breakdown.length === 0 ? (
               <p className="py-8 text-center text-sm text-slate-400">No data available</p>
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
                     data={stats.status_breakdown}
                     dataKey="count"
                     nameKey="status"
                     cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    label={({ name, percent }) =>
-                      `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
-                    }
-                    labelLine={false}
+                    cy="45%"
+                    outerRadius={95}
+                    innerRadius={40}
                   >
                     {stats.status_breakdown.map((entry, index) => (
                       <Cell
@@ -180,9 +177,19 @@ function Dashboard() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(val) => [Number(val).toLocaleString(), "Shipments"]}
+                    formatter={(val, name) => [
+                      `${Number(val).toLocaleString()} shipments`,
+                      String(name),
+                    ]}
                   />
-                  <Legend />
+                  <Legend
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                    formatter={(value) => (
+                      <span style={{ color: "#475569" }}>{value}</span>
+                    )}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             )}
