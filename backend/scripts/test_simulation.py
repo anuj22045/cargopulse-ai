@@ -26,3 +26,6 @@ try:
 
 finally:
     db.close()
+
+#cd backend
+#python -m scripts.test_simulation

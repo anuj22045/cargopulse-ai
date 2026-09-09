@@ -148,4 +148,15 @@ def simulate_shipment(
 
     db.refresh(shipment)
 
-    return shipment
+    return {
+    "shipment_id": shipment.id,
+    "weather": weather.name,
+    "congestion": operational.congestion,
+    "mechanical_event": operational.mechanical_event,
+    "customs_delay": operational.customs_delay,
+    "effective_speed_kmh": effective_speed,
+    "distance_remaining_km": shipment.distance_remaining_km,
+    "simulation_elapsed_minutes": shipment.simulation_elapsed_minutes,
+    "latitude": shipment.current_latitude,
+    "longitude": shipment.current_longitude,
+}

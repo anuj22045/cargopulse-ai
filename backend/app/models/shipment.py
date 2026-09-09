@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, Numeric, String
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, Numeric, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -116,6 +116,12 @@ class Shipment(Base):
     simulation_elapsed_minutes: Mapped[int] = mapped_column(
     Integer,
     default=0,
+    nullable=False
+    )
+
+    simulation_enabled: Mapped[bool] = mapped_column(
+    Boolean,
+    default=False,
     nullable=False
     )
 
