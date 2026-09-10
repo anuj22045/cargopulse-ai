@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict
 class ShipmentEventBase(BaseModel):
     event_type: str
     description: str | None = None
+    severity: str | None = None
+    metadata_json: str | None = None
     latitude: float | None = None
     longitude: float | None = None
     event_time: datetime
