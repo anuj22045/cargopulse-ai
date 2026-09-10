@@ -31,6 +31,18 @@ class ShipmentEvent(Base):
         nullable=True
     )
 
+    # ── Severity level: INFO, WARNING, CRITICAL ────────────────────
+    severity: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True
+    )
+
+    # ── JSON blob for extra structured event data ──────────────────
+    metadata_json: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
     latitude: Mapped[float | None] = mapped_column(
         Float,
         nullable=True

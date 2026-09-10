@@ -27,31 +27,31 @@ class SimulationEvent(Base):
         index=True
     )
 
-    traffic_status: Mapped[str | None] = mapped_column(
+    # ── Weather condition at the time of the tick ──────────────────
+    weather: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True
     )
 
-    temperature: Mapped[float | None] = mapped_column(
+    # ── Port / road congestion level ───────────────────────────────
+    congestion_level: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True
+    )
+
+    # ── Combined speed modifier (weather × congestion) ─────────────
+    speed_modifier: Mapped[float | None] = mapped_column(
         Float,
         nullable=True
     )
 
-    humidity: Mapped[float | None] = mapped_column(
+    # ── Extra hours added to ETA because of port congestion ────────
+    port_wait_hours: Mapped[float | None] = mapped_column(
         Float,
         nullable=True
     )
 
-    waiting_time: Mapped[float | None] = mapped_column(
-        Float,
-        nullable=True
-    )
-
-    asset_utilization: Mapped[float | None] = mapped_column(
-        Float,
-        nullable=True
-    )
-
+    # ── Position at tick time ──────────────────────────────────────
     latitude: Mapped[float | None] = mapped_column(
         Float,
         nullable=True

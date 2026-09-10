@@ -61,8 +61,8 @@ def run_simulation_tick():
             simulation_result = simulate_shipment(
                 db=db,
                 shipment=shipment,
-                scenario="normal_day",
-                operational_scenario="normal_day",
+                scenario=shipment.weather_scenario,
+                operational_scenario=shipment.operational_scenario,
                 elapsed_minutes=elapsed_minutes,
                 tick_minutes=SIMULATION_TICK_MINUTES,
             )

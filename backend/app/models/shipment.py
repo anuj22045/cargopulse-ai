@@ -125,6 +125,23 @@ class Shipment(Base):
     nullable=False
     )
 
+    # ── Per-shipment deterministic scenario selection ──────────────
+    # Matches keys in WEATHER_SCENARIOS (weather_simulator.py)
+    # e.g. "normal_day", "heavy_rain_day", "storm_day", "fog_day"
+    weather_scenario: Mapped[str] = mapped_column(
+    String(50),
+    default="normal_day",
+    nullable=False
+    )
+
+    # Matches keys in OPERATIONAL_SCENARIOS (event_generator.py)
+    # e.g. "normal_day", "busy_day"
+    operational_scenario: Mapped[str] = mapped_column(
+    String(50),
+    default="normal_day",
+    nullable=False
+    )
+
     carrier = relationship(
         "Carrier",
         back_populates = "shipments"
