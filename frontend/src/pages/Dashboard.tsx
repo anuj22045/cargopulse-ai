@@ -18,9 +18,12 @@ import {
   AlertTriangle,
   CheckCircle,
   TrendingUp,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { getDashboardStats, type DashboardStats } from "../services/dashboardService";
 import { getShipments, type Shipment } from "../services/shipmentService";
+import { useDashboardWebSocket } from "../hooks/useDashboardWebSocket";
 
 const STATUS_COLORS: Record<string, string> = {
   Shipping: "#3b82f6",
@@ -41,20 +44,27 @@ function StatCard({
   icon: Icon,
   color,
   sub,
+  live,
 }: {
   label: string;
   value: number | string;
   icon: React.ElementType;
   color: string;
   sub?: string;
+  live?: boolean;
 }) {
   return (
     <div className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg ${color}`}>
         <Icon className="h-5 w-5 text-white" />
       </div>
-      <div>
-        <p className="text-sm text-slate-500">{label}</p>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm text-slate-500">{label}</p>
+          {live && (
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+          )}
+        </div>
         <p className="mt-0.5 text-2xl font-bold text-slate-900">{value}</p>
         {sub && <p className="mt-0.5 text-xs text-slate-400">{sub}</p>}
       </div>
@@ -87,6 +97,21 @@ function Dashboard() {
   const [statsLoading, setStatsLoading] = useState(true);
   const [shipmentsLoading, setShipmentsLoading] = useState(true);
 
+  // Dashboard WebSocket — live stat updates from simulation scheduler
+  const { latestStats, wsState, isConnected: wsConnected } = useDashboardWebSocket();
+
+  // Merge live WebSocket stats into the displayed stats
+  const displayStats: DashboardStats | null = latestStats
+    ? {
+        total_shipments: latestStats.total_shipments,
+        in_transit: latestStats.in_transit,
+        delayed: latestStats.delayed,
+        delivered: latestStats.delivered,
+        status_breakdown: latestStats.status_breakdown,
+        avg_delay_risk: latestStats.avg_delay_risk,
+      }
+    : stats;
+
   useEffect(() => {
     getDashboardStats()
       .then(setStats)
@@ -101,6 +126,21 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Live connection badge */}
+      <div className="flex items-center justify-end gap-2">
+        {wsConnected ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+            <Wifi className="h-3 w-3" />
+            Live updates active
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500 border border-slate-200">
+            <WifiOff className="h-3 w-3" />
+            {wsState === "reconnecting" ? "Reconnecting..." : "Disconnected"}
+          </span>
+        )}
+      </div>
+
       {/* Stat cards */}
       {statsLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -112,40 +152,44 @@ function Dashboard() {
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Could not load dashboard stats: {statsError}
         </div>
-      ) : stats ? (
+      ) : displayStats ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Total Shipments"
-            value={stats.total_shipments.toLocaleString()}
+            value={displayStats.total_shipments.toLocaleString()}
             icon={Package}
             color="bg-slate-700"
+            live={wsConnected}
           />
           <StatCard
             label="In Transit"
-            value={stats.in_transit.toLocaleString()}
+            value={displayStats.in_transit.toLocaleString()}
             icon={Truck}
             color="bg-blue-500"
             sub="Currently active"
+            live={wsConnected}
           />
           <StatCard
             label="Delayed"
-            value={stats.delayed.toLocaleString()}
+            value={displayStats.delayed.toLocaleString()}
             icon={AlertTriangle}
             color="bg-red-500"
             sub="Require attention"
+            live={wsConnected}
           />
           <StatCard
             label="Delivered"
-            value={stats.delivered.toLocaleString()}
+            value={displayStats.delivered.toLocaleString()}
             icon={CheckCircle}
             color="bg-green-500"
             sub="Successfully completed"
+            live={wsConnected}
           />
         </div>
       ) : null}
 
       {/* Charts row */}
-      {stats && (
+      {displayStats && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Pie chart — status breakdown */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -154,22 +198,26 @@ function Dashboard() {
               <h2 className="text-sm font-semibold text-slate-800">
                 Shipment Status Breakdown
               </h2>
+              {wsConnected && (
+                <span className="ml-auto text-[10px] text-green-600 font-medium">● Live</span>
+              )}
             </div>
-            {stats.status_breakdown.length === 0 ? (
+            {displayStats.status_breakdown.length === 0 ? (
               <p className="py-8 text-center text-sm text-slate-400">No data available</p>
             ) : (
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
-                    data={stats.status_breakdown}
+                    data={displayStats.status_breakdown}
                     dataKey="count"
                     nameKey="status"
                     cx="50%"
                     cy="45%"
                     outerRadius={95}
                     innerRadius={40}
+                    isAnimationActive={false}
                   >
-                    {stats.status_breakdown.map((entry, index) => (
+                    {displayStats.status_breakdown.map((entry, index) => (
                       <Cell
                         key={entry.status}
                         fill={STATUS_COLORS[entry.status] ?? FALLBACK_PIE_COLORS[index % FALLBACK_PIE_COLORS.length]}
@@ -202,12 +250,15 @@ function Dashboard() {
               <h2 className="text-sm font-semibold text-slate-800">
                 Risk Distribution by Status
               </h2>
+              {wsConnected && (
+                <span className="ml-auto text-[10px] text-green-600 font-medium">● Live</span>
+              )}
             </div>
-            {stats.status_breakdown.length === 0 ? (
+            {displayStats.status_breakdown.length === 0 ? (
               <p className="py-8 text-center text-sm text-slate-400">No data available</p>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={stats.status_breakdown} margin={{ left: -10 }}>
+                <BarChart data={displayStats.status_breakdown} margin={{ left: -10 }}>
                   <XAxis
                     dataKey="status"
                     tick={{ fontSize: 11, fill: "#64748b" }}
@@ -223,8 +274,8 @@ function Dashboard() {
                     cursor={{ fill: "#f1f5f9" }}
                     formatter={(val) => [Number(val).toLocaleString(), "Shipments"]}
                   />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                    {stats.status_breakdown.map((entry, index) => (
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                    {displayStats.status_breakdown.map((entry, index) => (
                       <Cell
                         key={entry.status}
                         fill={STATUS_COLORS[entry.status] ?? FALLBACK_PIE_COLORS[index % FALLBACK_PIE_COLORS.length]}

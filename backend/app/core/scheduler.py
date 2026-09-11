@@ -4,6 +4,9 @@ Simulation Scheduler
 Runs the shipment simulation automatically at a fixed interval.
 It finds active shipments and advances their simulation state
 by one simulation tick.
+
+After each tick, it also broadcasts updated dashboard stats
+to all connected dashboard WebSocket clients.
 """
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -20,6 +23,54 @@ SIMULATION_BATCH_SIZE = 50
 
 
 scheduler = BackgroundScheduler()
+
+
+def _get_dashboard_stats(db) -> dict:
+    """
+    Compute live dashboard stats from the database.
+    Called after each simulation tick to push live updates.
+    """
+    from sqlalchemy import func, select
+
+    rows = db.execute(
+        select(
+            Shipment.shipment_status,
+            func.count(Shipment.id).label("count")
+        )
+        .group_by(Shipment.shipment_status)
+    ).all()
+
+    total = 0
+    in_transit = 0
+    delayed = 0
+    delivered = 0
+    status_breakdown = []
+
+    for row in rows:
+        status = row.shipment_status or "Unknown"
+        count = row.count
+        total += count
+
+        if status == "Shipping":
+            in_transit += count
+        elif status == "Late delivery":
+            delayed += count
+        elif status == "Delivered":
+            delivered += count
+
+        status_breakdown.append({"status": status, "count": count})
+
+    status_breakdown.sort(key=lambda x: x["count"], reverse=True)
+
+    return {
+        "type": "dashboard_update",
+        "total_shipments": total,
+        "in_transit": in_transit,
+        "delayed": delayed,
+        "delivered": delivered,
+        "status_breakdown": status_breakdown,
+        "avg_delay_risk": 0.0,
+    }
 
 
 def run_simulation_tick():
@@ -69,12 +120,16 @@ def run_simulation_tick():
             manager.broadcast_from_sync(
                 shipment.id,
                 {
-                    "type":"shipment_update",
+                    "type": "shipment_update",
                     **simulation_result,
                 }
             )
 
         print("Simulation tick completed")
+
+        # Broadcast updated dashboard stats to all dashboard clients
+        dashboard_stats = _get_dashboard_stats(db)
+        manager.broadcast_dashboard_from_sync(dashboard_stats)
 
     except Exception as error:
         db.rollback()
