@@ -50,6 +50,17 @@ class SimulationEvent(Base):
         Float,
         nullable=True
     )
+    # ===============================================================
+    effective_speed_kmh: Mapped[float | None] = mapped_column(
+    Float,
+    nullable=True
+    )
+
+    distance_remaining_km: Mapped[float | None] = mapped_column(
+    Float,
+    nullable=True
+    )
+    # ================================================================
 
     # ── Position at tick time ──────────────────────────────────────
     latitude: Mapped[float | None] = mapped_column(

@@ -20,6 +20,9 @@ from contextlib import asynccontextmanager
 from app.core.scheduler import start_scheduler, stop_scheduler
 from app.api.websocket import router as websocket_router
 
+from app.api.history import router as history_router
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -64,6 +67,7 @@ app.include_router(ai_recommendation_router)
 app.include_router(decision_history_router)
 app.include_router(dashboard_router)
 app.include_router(websocket_router)
+app.include_router(history_router)
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(

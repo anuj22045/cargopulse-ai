@@ -188,6 +188,8 @@ def simulate_shipment(
         congestion_level=operational.congestion,
         speed_modifier=round(weather_mod, 4),
         port_wait_hours=port_wait_hours,
+        effective_speed_kmh=round(effective_speed, 2),
+        distance_remaining_km=round(route.distance_remaining_km,2),
         latitude=route.current_latitude,
         longitude=route.current_longitude,
     )

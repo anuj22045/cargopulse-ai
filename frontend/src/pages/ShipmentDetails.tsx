@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+
 import {
   ArrowLeft,
   MapPin,
@@ -14,6 +15,10 @@ import {
   Clock,
   Info,
   Navigation,
+  TrendingDown,
+  BarChart2,
+  Gauge,
+  ListOrdered,
 } from "lucide-react";
 import { getShipment, type Shipment } from "../services/shipmentService";
 import {
@@ -36,6 +41,11 @@ import {
   getShipmentEvents,
   type ShipmentEvent,
 } from "../services/shipmentEventService";
+import { useShipmentHistory } from "../hooks/useShipmentHistory";
+import { RiskHistoryChart } from "../components/charts/RiskHistoryChart";
+import { ETAHistoryChart } from "../components/charts/ETAHistoryChart";
+import { SpeedDistanceChart } from "../components/charts/SpeedDistanceChart";
+import { EventTimeline } from "../components/charts/EventTimeline";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -87,17 +97,24 @@ function InfoCard({
 function SectionCard({
   title,
   icon: Icon,
+  subtitle,
   children,
 }: {
   title: string;
   icon: React.ElementType;
+  subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
         <Icon className="h-4 w-4 text-amber-500" />
-        <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+        <div>
+          <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+          {subtitle && (
+            <p className="text-[10px] text-slate-400">{subtitle}</p>
+          )}
+        </div>
       </div>
       <div className="px-5 py-4">{children}</div>
     </div>
@@ -196,6 +213,19 @@ function ShipmentDetails() {
   const [decisions, setDecisions] = useState<DecisionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const numericShipmentId = shipmentId ? Number(shipmentId) : null;
+
+  const {
+    riskHistory,
+    etaHistory,
+    speedHistory,
+    eventHistory,
+    latestUpdate,
+    isConnected,
+    loading: historyLoading,
+    error: historyError,
+  } = useShipmentHistory(numericShipmentId);
 
   useEffect(() => {
     async function loadShipment() {
@@ -299,6 +329,72 @@ function ShipmentDetails() {
         </div>
       </div>
 
+      {/* Live Simulation Status */}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-800">
+              Live Simulation
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Real-time shipment updates from WebSocket
+            </p>
+          </div>
+
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              isConnected
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
+            }`}
+          >
+            {isConnected ? "● Connected" : "○ Disconnected"}
+          </span>
+        </div>
+
+        {latestUpdate && (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <InfoCard
+              icon={Activity}
+              label="Speed"
+              value={
+                latestUpdate.effective_speed_kmh != null
+                  ? `${latestUpdate.effective_speed_kmh} km/h`
+                  : "—"
+              }
+            />
+
+            <InfoCard
+              icon={Navigation}
+              label="Distance Remaining"
+              value={
+                latestUpdate.distance_remaining_km != null
+                  ? `${latestUpdate.distance_remaining_km} km`
+                  : "—"
+              }
+            />
+
+            <InfoCard
+              icon={Activity}
+              label="Weather"
+              value={latestUpdate.weather ?? "—"}
+            />
+
+            <InfoCard
+              icon={Activity}
+              label="Congestion"
+              value={latestUpdate.congestion ?? "—"}
+            />
+          </div>
+        )}
+
+        {!latestUpdate && (
+          <p className="mt-4 text-xs text-slate-400">
+            Waiting for live simulation update...
+          </p>
+        )}
+      </div>
+
       {/* Info cards grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <InfoCard
@@ -379,22 +475,63 @@ function ShipmentDetails() {
         </div>
       </div>
 
-      {/* Placeholder — Risk & ETA charts (Week 2) */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {["Delay Risk Over Time (Live — Phase 7)", "ETA Trend (Live — Phase 7)"].map(
-          (label) => (
-            <div
-              key={label}
-              className="flex h-48 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50"
-            >
-              <p className="text-xs text-slate-400">{label}</p>
-            </div>
-          )
-        )}
+      {/* ─── Day 13 Charts ──────────────────────────────────────────────────── */}
+
+      {/* Risk Over Time + ETA Trend */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {/* Risk Over Time */}
+        <SectionCard
+          title="Delay Risk Over Time"
+          icon={TrendingDown}
+          subtitle="Delay probability from AI predictions"
+        >
+          {historyError ? (
+            <p className="text-xs text-red-500 py-4">{historyError}</p>
+          ) : (
+            <RiskHistoryChart data={riskHistory} loading={historyLoading} />
+          )}
+        </SectionCard>
+
+        {/* ETA Trend */}
+        <SectionCard
+          title="ETA Trend"
+          icon={Clock}
+          subtitle="Predicted arrival time trend"
+        >
+          {historyError ? (
+            <p className="text-xs text-red-500 py-4">{historyError}</p>
+          ) : (
+            <ETAHistoryChart data={etaHistory} loading={historyLoading} />
+          )}
+        </SectionCard>
       </div>
 
-      {/* Event timeline */}
-      <SectionCard title="Shipment Events" icon={Clock}>
+      {/* Speed & Distance chart */}
+      <SectionCard
+        title="Speed & Distance Remaining"
+        icon={Gauge}
+        subtitle="Live simulation speed and remaining distance"
+      >
+        {historyError ? (
+          <p className="text-xs text-red-500 py-4">{historyError}</p>
+        ) : (
+          <SpeedDistanceChart data={speedHistory} loading={historyLoading} />
+        )}
+      </SectionCard>
+
+      {/* Event / Condition Timeline */}
+      <SectionCard
+        title="Event & Condition Timeline"
+        icon={ListOrdered}
+        subtitle="Shipment events from REST API + live simulation updates"
+      >
+        <EventTimeline events={eventHistory} />
+      </SectionCard>
+
+      {/* ─── Existing sections (preserved) ─────────────────────────────────── */}
+
+      {/* Event timeline (original REST-based from shipmentEventService) */}
+      <SectionCard title="Shipment Events (Log)" icon={Clock}>
         {events.length === 0 ? (
           <p className="text-sm text-slate-400">No events recorded yet.</p>
         ) : (
@@ -493,7 +630,7 @@ function ShipmentDetails() {
       </SectionCard>
 
       {/* Simulation History */}
-      <SectionCard title="Simulation History" icon={Activity}>
+      <SectionCard title="Simulation History" icon={BarChart2}>
         {simulationEvents.length === 0 ? (
           <p className="text-sm text-slate-400">No simulation events yet.</p>
         ) : (
