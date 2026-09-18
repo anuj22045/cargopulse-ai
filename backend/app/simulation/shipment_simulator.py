@@ -32,6 +32,10 @@ from app.simulation.route_engine import (
     calculate_effective_speed,
     update_route,
 )
+from app.ai.ml.delay_predictor import predict
+from app.ai.ml.feature_builder import build_delay_features
+from app.schemas import AIPredictionCreate
+from app.services.ai_prediction_service import create_prediction
 
 
 DEFAULT_BASE_SPEED_KMH = 60.0
@@ -176,6 +180,34 @@ def simulate_shipment(
     shipment.current_latitude = route.current_latitude
     shipment.current_longitude = route.current_longitude
     shipment.updated_at = datetime.utcnow()
+
+    # ---------------------------------------------------------
+    # 5.1 Generate AI delay prediction
+    # ---------------------------------------------------------
+
+    features = build_delay_features(
+        shipment=shipment,
+        timestamp=datetime.utcnow()
+    )
+
+    prediction_result = predict(features)
+
+        # ---------------------------------------------------------
+    # 5.2 Save AI prediction to database
+    # ---------------------------------------------------------
+
+    prediction_data = AIPredictionCreate(
+        shipment_id=shipment.id,
+        delay_probability=prediction_result["delay_probability"],
+        predicted_eta=None,
+        confidence_score=prediction_result["confidence"],
+        model_version="xgboost-v1",
+    )
+
+    create_prediction(
+        db=db,
+        prediction_data=prediction_data
+    )
 
     # ---------------------------------------------------------
     # 6. Save simulation event (append-only history)

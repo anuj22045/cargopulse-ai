@@ -18,6 +18,13 @@ class ShipmentBase(BaseModel):
     current_latitude: float | None = None
     current_longitude: float | None = None
 
+    total_distance_km: float | None = None
+    distance_remaining_km: float | None = None
+    simulation_elapsed_minutes: int = 0
+    simulation_enabled: bool = False
+    weather_scenario: str = "normal_day"
+    operational_scenario: str = "normal_day"
+
 
 class ShipmentCreate(ShipmentBase):
     shipment_reference: str

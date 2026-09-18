@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import AIPrediction
 from app.schemas import AIPredictionCreate
-
+# from app.services.ai_prediction_service import create_prediction
 
 def get_shipment_predictions(
     db: Session,
