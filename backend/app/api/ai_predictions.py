@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+
 from app.schemas import (
     AIPredictionCreate,
     AIPredictionResponse,
+    DelayPredictionRequest,
 )
 from app.services.ai_prediction_service import (
     get_shipment_predictions,
@@ -12,6 +14,7 @@ from app.services.ai_prediction_service import (
     create_prediction,
 )
 
+from app.ai.ml.delay_predictor import predict
 
 router = APIRouter(
     prefix="/ai-predictions",
@@ -67,4 +70,14 @@ def create_new_prediction(
     return create_prediction(
         db=db,
         prediction_data=prediction_data
+    )
+
+@router.post(
+    "/predict-delay"
+)
+def predict_delay(
+    prediction_data: DelayPredictionRequest
+):
+    return predict(
+    prediction_data.model_dump()
     )

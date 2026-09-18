@@ -32,7 +32,7 @@ model = joblib.load(MODEL_PATH)
 preprocessor = joblib.load(PREPROCESSOR_PATH)
 
 
-def predict(features):
+def predict(features: dict):
     missing_features = [
     feature for feature in FEATURES
     if feature not in features

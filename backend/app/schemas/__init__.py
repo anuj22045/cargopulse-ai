@@ -15,6 +15,7 @@ from app.schemas.ai_prediction import (
     AIPredictionBase,
     AIPredictionCreate,
     AIPredictionResponse,
+    DelayPredictionRequest,
 )
 
 from app.schemas.simulation_event import (

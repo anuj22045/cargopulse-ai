@@ -32,6 +32,8 @@ from app.simulation.route_engine import (
     calculate_effective_speed,
     update_route,
 )
+from app.ai.ml.delay_predictor import predict
+from app.ai.ml.feature_builder import build_delay_features
 
 
 DEFAULT_BASE_SPEED_KMH = 60.0
@@ -176,6 +178,17 @@ def simulate_shipment(
     shipment.current_latitude = route.current_latitude
     shipment.current_longitude = route.current_longitude
     shipment.updated_at = datetime.utcnow()
+
+    # ---------------------------------------------------------
+    # 5.1 Generate AI delay prediction
+    # ---------------------------------------------------------
+
+    features = build_delay_features(
+        shipment=shipment,
+        timestamp=datetime.utcnow()
+    )
+
+    prediction_result = predict(features)
 
     # ---------------------------------------------------------
     # 6. Save simulation event (append-only history)
