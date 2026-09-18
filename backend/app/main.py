@@ -14,6 +14,7 @@ from app.api.simulation_events import router as simulation_event_router
 from app.api.ai_recommendations import router as ai_recommendation_router
 from app.api.decision_history import router as decision_history_router
 from app.api.dashboard import router as dashboard_router
+from app.api import simulation
 
 #auto simulation 
 from contextlib import asynccontextmanager
@@ -68,6 +69,7 @@ app.include_router(decision_history_router)
 app.include_router(dashboard_router)
 app.include_router(websocket_router)
 app.include_router(history_router)
+app.include_router(simulation.router)
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(
