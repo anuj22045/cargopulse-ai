@@ -402,5 +402,5 @@ This project is licensed under the terms in the [`LICENSE`](./backend/LICENSE) f
 ---
 
 <div align="center">
-  <sub>Built with ❤️ as an AI/ML Engineering Capstone Project</sub>
+  <sub>Built with ❤️ as an AI/ML Engineering Student</sub>
 </div>
