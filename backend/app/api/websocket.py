@@ -14,6 +14,9 @@ class ConnectionManager:
         self.dashboard_connections: set[WebSocket] = set()
         self.loop: asyncio.AbstractEventLoop | None = None
 
+    def set_loop(self, loop: asyncio.AbstractEventLoop):
+        self.loop = loop
+
     # ── Shipment connections ─────────────────────────────────────────
 
     async def connect(
@@ -23,7 +26,7 @@ class ConnectionManager:
     ):
         await websocket.accept()
 
-        self.loop = asyncio.get_running_loop()
+        # self.loop = asyncio.get_running_loop()
 
         if shipment_id not in self.connections:
             self.connections[shipment_id] = set()
@@ -121,7 +124,7 @@ class ConnectionManager:
     async def connect_dashboard(self, websocket: WebSocket):
         await websocket.accept()
 
-        self.loop = asyncio.get_running_loop()
+        # self.loop = asyncio.get_running_loop()
         self.dashboard_connections.add(websocket)
 
         print(f"Dashboard WebSocket connected (total: {len(self.dashboard_connections)})")
