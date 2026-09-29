@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +20,10 @@ from app.api import simulation
 #auto simulation 
 from contextlib import asynccontextmanager
 from app.core.scheduler import start_scheduler, stop_scheduler
-from app.api.websocket import router as websocket_router
+from app.api.websocket import (
+    router as websocket_router,
+    manager,
+)
 
 from app.api.history import router as history_router
 
@@ -27,6 +31,10 @@ from app.api.history import router as history_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    loop = asyncio.get_running_loop()
+
+    manager.set_loop(loop)
+
     start_scheduler()
 
     yield
