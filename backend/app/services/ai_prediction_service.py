@@ -61,3 +61,41 @@ def create_prediction(
         raise
 
     return prediction
+
+def get_latest_prediction(
+    db: Session,
+    shipment_id: int
+) -> AIPrediction | None:
+
+    statement = (
+        select(AIPrediction)
+        .where(
+            AIPrediction.shipment_id == shipment_id
+        )
+        .order_by(
+            AIPrediction.prediction_time.desc()
+        )
+        .limit(1)
+    )
+
+    return db.execute(
+        statement
+    ).scalar_one_or_none()
+
+"""
+get_shipment_predictions()
+        ↓
+all prediction history
+
+get_latest_prediction()
+        ↓
+latest prediction only
+
+get_prediction()
+        ↓
+prediction by ID
+
+create_prediction()
+        ↓
+save new prediction
+"""
