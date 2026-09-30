@@ -65,6 +65,10 @@ class Shipment(Base):
         Numeric(12, 2),
         nullable=True
     )
+    product_price: Mapped[Decimal | None] = mapped_column(
+            Numeric(12, 2),
+            nullable=True
+    )
     profit_per_order : Mapped[Decimal | None] = mapped_column(
         Numeric(12, 2),
         nullable=True
@@ -124,6 +128,7 @@ class Shipment(Base):
     default=False,
     nullable=False
     )
+    
 
     # ── Per-shipment deterministic scenario selection ──────────────
     # Matches keys in WEATHER_SCENARIOS (weather_simulator.py)
