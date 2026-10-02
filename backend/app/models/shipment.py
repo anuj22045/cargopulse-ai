@@ -60,6 +60,30 @@ class Shipment(Base):
         String(100),
         nullable=True
     )
+    order_hour: Mapped[int | None] = mapped_column(
+    Integer,
+    nullable=True
+    )
+
+    order_day_of_week: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True
+        )
+
+    order_month: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True
+    )
+
+    is_weekend: Mapped[bool | None] = mapped_column(
+        Boolean,
+        nullable=True
+    )
+
+    order_item_profit_ratio: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True
+    )
 
     sales: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 2),

@@ -297,7 +297,14 @@ function ShipmentDetails() {
     );
   }
 
-  const latestPrediction = predictions[predictions.length - 1] ?? null;
+  const latestPrediction =
+  predictions.length > 0
+    ? [...predictions].sort(
+        (a, b) =>
+          new Date(b.prediction_time).getTime() -
+          new Date(a.prediction_time).getTime()
+      )[0]
+    : null;
 
   return (
     <div className="space-y-5">
@@ -394,6 +401,58 @@ function ShipmentDetails() {
           </p>
         )}
       </div>
+
+            {/* Current AI Prediction */}
+      {latestPrediction && (
+        <SectionCard
+          title="Current AI Prediction"
+          icon={Brain}
+          subtitle="Latest delay and ETA prediction"
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <InfoCard
+              icon={AlertTriangle}
+              label="Delay Probability"
+              value={`${(latestPrediction.delay_probability * 100).toFixed(1)}%`}
+            />
+
+            <InfoCard
+              icon={Clock}
+              label="Predicted ETA"
+              value={
+                latestPrediction.predicted_eta
+                  ? formatDateTime(latestPrediction.predicted_eta)
+                  : "—"
+              }
+            />
+
+            <InfoCard
+              icon={Gauge}
+              label="Confidence"
+              value={
+                latestPrediction.confidence_score != null
+                  ? `${(latestPrediction.confidence_score * 100).toFixed(1)}%`
+                  : "—"
+              }
+            />
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <span>
+              Model:{" "}
+              <strong className="text-slate-700">
+                {latestPrediction.model_version}
+              </strong>
+            </span>
+
+            <span>•</span>
+
+            <span>
+              Updated: {formatDateTime(latestPrediction.prediction_time)}
+            </span>
+          </div>
+        </SectionCard>
+      )}
 
       {/* Info cards grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

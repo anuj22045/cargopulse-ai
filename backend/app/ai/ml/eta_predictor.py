@@ -40,7 +40,15 @@ ETA_FEATURES = [
     "market",
     "latitude",
     "longitude",
-    "shipping_mode_delay_rate"
+    "shipping_mode_delay_rate",
+    "order_hour",
+    "order_day_of_week",
+    "order_month",
+    "is_weekend",
+    "order_region",
+    "sales",
+    "order_profit_per_order",
+    "order_item_profit_ratio"
 ]
 
 
