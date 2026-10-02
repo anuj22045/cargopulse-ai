@@ -121,3 +121,5 @@ if __name__ == "__main__":
 
 # python -m scripts.import_dataco (from backend folder)
 # psql -U postgres -d cargopulse_ai 
+
+#######################Dnt run this file as data is already in database ######################

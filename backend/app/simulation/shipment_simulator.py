@@ -17,7 +17,7 @@ Congestion impact on port wait time (added to delay, not speed here):
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -33,6 +33,7 @@ from app.simulation.route_engine import (
     update_route,
 )
 from app.ai.ml.delay_predictor import predict
+from app.ai.ml.eta_predictor import predict_eta
 from app.ai.ml.feature_builder import build_delay_features
 from app.schemas import AIPredictionCreate
 from app.services.ai_prediction_service import create_prediction
@@ -192,18 +193,56 @@ def simulate_shipment(
 
     prediction_result = predict(features)
 
-        # ---------------------------------------------------------
+    # ---------------------------------------------------------
+    # 5.1 Generate ETA prediction
+    # ---------------------------------------------------------
+    eta_features = {
+    "shipping_mode": shipment.shipping_mode,
+    "days_for_shipment_scheduled": shipment.scheduled_shipping_days,
+    "order_item_quantity": shipment.quantity,
+    "product_price": float(shipment.product_price or 0),
+    "customer_segment": shipment.customer_segment,
+    "market": shipment.market,
+    "latitude": shipment.current_latitude,
+    "longitude": shipment.current_longitude,
+    "shipping_mode_delay_rate": features["shipping_mode_delay_rate"],
+    "order_hour": shipment.order_hour,
+    "order_day_of_week": shipment.order_day_of_week,
+    "order_month": shipment.order_month,
+    "is_weekend": shipment.is_weekend,
+    "order_region": shipment.order_region,
+    "sales": float(shipment.sales or 0),
+    "order_profit_per_order": float(shipment.profit_per_order or 0),
+    "order_item_profit_ratio": shipment.order_item_profit_ratio,
+}
+    if route.distance_remaining_km <= 0:
+        predicted_eta = None
+    else:
+        predicted_days = predict_eta(eta_features)
+
+        # Convert elapsed simulation time from minutes to days
+        elapsed_days = shipment.simulation_elapsed_minutes / (24 * 60)
+
+        # Calculate remaining predicted shipping time
+        remaining_predicted_days = max(
+            predicted_days - elapsed_days,
+            0
+        )
+
+        predicted_eta = datetime.utcnow() + timedelta(
+            days=remaining_predicted_days
+        )
+
+    # ---------------------------------------------------------
     # 5.2 Save AI prediction to database
     # ---------------------------------------------------------
-
     prediction_data = AIPredictionCreate(
         shipment_id=shipment.id,
         delay_probability=prediction_result["delay_probability"],
-        predicted_eta=None,
+        predicted_eta=predicted_eta,
         confidence_score=prediction_result["confidence"],
-        model_version="xgboost-v1",
+        model_version="xgboost-eta-v2",
     )
-
     create_prediction(
         db=db,
         prediction_data=prediction_data
@@ -284,6 +323,6 @@ def simulate_shipment(
         "distance_remaining_km": round(route.distance_remaining_km, 2),
         "simulation_elapsed_minutes": shipment.simulation_elapsed_minutes,
         "latitude": shipment.current_latitude,
-        "longitude": shipment.current_longitude,
+        "longitude": shipment.current_longitude, 
         "severity": severity,
     }

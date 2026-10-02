@@ -10,6 +10,7 @@ from app.schemas import (
 )
 from app.services.ai_prediction_service import (
     get_shipment_predictions,
+    get_latest_prediction,
     get_prediction,
     create_prediction,
 )
@@ -81,3 +82,25 @@ def predict_delay(
     return predict(
     prediction_data.model_dump()
     )
+
+
+@router.get(
+    "/shipment/{shipment_id}/latest",
+    response_model=AIPredictionResponse
+)
+def read_latest_prediction(
+    shipment_id: int,
+    db: Session = Depends(get_db)
+):
+    prediction = get_latest_prediction(
+        db=db,
+        shipment_id=shipment_id
+    )
+
+    if prediction is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No AI prediction found for this shipment"
+        )
+
+    return prediction
