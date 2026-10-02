@@ -311,6 +311,6 @@ def simulate_shipment(
         "distance_remaining_km": round(route.distance_remaining_km, 2),
         "simulation_elapsed_minutes": shipment.simulation_elapsed_minutes,
         "latitude": shipment.current_latitude,
-        "longitude": shipment.current_longitude,
+        "longitude": shipment.current_longitude, 
         "severity": severity,
     }
