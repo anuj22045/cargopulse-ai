@@ -207,20 +207,24 @@ def simulate_shipment(
         "longitude": shipment.current_longitude,
         "shipping_mode_delay_rate": features["shipping_mode_delay_rate"],
     }
-    predicted_days = predict_eta(eta_features)
+    if route.distance_remaining_km <= 0:
+        predicted_eta = None
+    else:
+        predicted_days = predict_eta(eta_features)
 
-    # Convert elapsed simulation time from minutes to days
-    elapsed_days = shipment.simulation_elapsed_minutes / (24 * 60)
+        # Convert elapsed simulation time from minutes to days
+        elapsed_days = shipment.simulation_elapsed_minutes / (24 * 60)
 
-    # Calculate remaining predicted shipping time
-    remaining_predicted_days = max(
-        predicted_days - elapsed_days,
-        0
+        # Calculate remaining predicted shipping time
+        remaining_predicted_days = max(
+            predicted_days - elapsed_days,
+            0
         )
 
-    predicted_eta = datetime.utcnow() + timedelta(
-        days=remaining_predicted_days
+        predicted_eta = datetime.utcnow() + timedelta(
+            days=remaining_predicted_days
         )
+
     # ---------------------------------------------------------
     # 5.2 Save AI prediction to database
     # ---------------------------------------------------------

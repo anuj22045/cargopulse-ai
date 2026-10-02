@@ -1,5 +1,5 @@
 # This service layer contains the database logic for creating, reading, updating, and deleting shipments.
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from app.models import Shipment
@@ -46,6 +46,15 @@ def get_shipments(
             Shipment.shipment_reference.ilike(search_pattern)
             | Shipment.order_id.ilike(search_pattern)
         )
+
+        statement = statement.order_by(
+        case(
+            (Shipment.shipment_reference.ilike(search), 0),
+            (Shipment.order_id == search, 1),
+            else_=2
+        ),
+        Shipment.id
+    )
 
     statement = (
         statement
