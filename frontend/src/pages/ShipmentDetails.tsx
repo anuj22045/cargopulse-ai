@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import ShipmentRouteMap from "../components/maps/ShipmentRouteMap";
 
 import {
   ArrowLeft,
@@ -498,41 +499,23 @@ function ShipmentDetails() {
       </div>
 
       {/* Map placeholder */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
-          <Navigation className="h-4 w-4 text-amber-500" />
-          <h2 className="text-sm font-semibold text-slate-800">Route Map</h2>
-          <span className="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
-            Phase 7 — Live tracking
-          </span>
-        </div>
-        <div className="relative flex h-52 items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-          {/* Grid pattern */}
-          <svg className="absolute inset-0 h-full w-full opacity-30" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
-                <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#94a3b8" strokeWidth="0.5" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-          {/* Route line placeholder */}
-          <svg className="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
-            <line x1="15%" y1="50%" x2="85%" y2="50%" stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 4" opacity="0.6" />
-            <circle cx="15%" cy="50%" r="6" fill="#22c55e" opacity="0.8" />
-            <circle cx="85%" cy="50%" r="6" fill="#ef4444" opacity="0.8" />
-          </svg>
-          <div className="z-10 flex flex-col items-center gap-2 text-center">
-            <MapPin className="h-8 w-8 text-slate-300" />
-            <p className="text-sm font-medium text-slate-500">Interactive map coming in Phase 7</p>
-            {shipment.current_latitude && shipment.current_longitude && (
-              <p className="text-xs text-slate-400">
-                Current position: {shipment.current_latitude.toFixed(4)}, {shipment.current_longitude.toFixed(4)}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* Route Map */}
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex items-center gap-2">
+      <Navigation className="h-4 w-4 text-amber-500" />
+      <h2 className="text-sm font-semibold text-slate-800">
+        Route Map
+      </h2>
+      <span className="ml-auto text-xs text-slate-500">
+        Live tracking
+      </span>
+    </div>
+
+    <ShipmentRouteMap
+      latitude={latestUpdate?.latitude ?? shipment.current_latitude}
+      longitude={latestUpdate?.longitude ?? shipment.current_longitude}
+      />
+    </div>
 
       {/* ─── Day 13 Charts ──────────────────────────────────────────────────── */}
 
