@@ -17,8 +17,17 @@ export interface Shipment {
   current_longitude: number | null;
   created_at: string;
   updated_at: string;
+  route: ShipmentRoute | null;
 }
 
+
+export interface ShipmentRoute {
+  id: number;
+  origin: string;
+  destination: string;
+  route_code: string | null;
+  
+}
 
 export async function getShipments(
   skip: number = 0,
