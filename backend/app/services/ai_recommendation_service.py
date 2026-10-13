@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models import AIRecommendation
 from app.schemas import AIRecommendationCreate
+from sqlalchemy import delete, select
 
 
 def get_shipment_recommendations(
@@ -58,3 +59,44 @@ def create_recommendation(
         raise
 
     return recommendation
+
+
+def replace_shipment_recommendations(
+    db: Session,
+    shipment_id: int,
+    recommendations: list[AIRecommendationCreate],
+) -> list[AIRecommendation]:
+    """Atomically replace a shipment's recommendations."""
+
+    try:
+        # Delete existing recommendations inside this transaction.
+        statement = (
+            delete(AIRecommendation)
+            .where(AIRecommendation.shipment_id == shipment_id)
+        )
+        db.execute(statement)
+
+        # Stage every new recommendation without committing individually.
+        new_records = [
+            AIRecommendation(**item.model_dump())
+            for item in recommendations
+        ]
+
+        db.add_all(new_records)
+
+        # Send inserts to the database and catch constraint errors
+        # before committing the transaction.
+        db.flush()
+
+        # Commit the deletion and all inserts as one transaction.
+        db.commit()
+
+        # Refresh records so database-generated fields are available.
+        for record in new_records:
+            db.refresh(record)
+
+        return new_records
+
+    except Exception:
+        db.rollback()
+        raise
