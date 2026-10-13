@@ -28,6 +28,10 @@ from app.api.websocket import (
 from app.api.history import router as history_router
 
 
+from app.api.shap_explanations import router as shap_explanation_router
+
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -78,6 +82,7 @@ app.include_router(dashboard_router)
 app.include_router(websocket_router)
 app.include_router(history_router)
 app.include_router(simulation.router)
+app.include_router(shap_explanation_router)
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(

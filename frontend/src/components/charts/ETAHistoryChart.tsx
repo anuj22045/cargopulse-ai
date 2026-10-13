@@ -43,14 +43,26 @@ function formatETA(eta: string): string {
 }
 
 // Convert ETA string to a numeric value (days from now) for the Y-axis
-function etaToNumeric(eta: string): number {
-  try {
-    const ms = new Date(eta).getTime() - Date.now();
-    return Math.round(ms / (1000 * 60 * 60)); // hours from now
-  } catch {
+
+function etaToNumeric(
+  predictedEta: string,
+  predictionTime: string
+): number {
+  const etaMs = new Date(predictedEta).getTime();
+  const predictionMs = new Date(predictionTime).getTime();
+
+  if (
+    !Number.isFinite(etaMs) ||
+    !Number.isFinite(predictionMs)
+  ) {
     return 0;
   }
+
+  return Math.round(
+    (etaMs - predictionMs) / (1000 * 60 * 60)
+  );
 }
+
 
 function ETATooltip({
   active,
@@ -96,8 +108,11 @@ export function ETAHistoryChart({ data, loading }: Props) {
     )
     .map((p) => ({
       ...p,
-      eta_numeric: etaToNumeric(p.predicted_eta),
-    }));
+      eta_numeric: etaToNumeric(
+      p.predicted_eta,
+      p.timestamp
+  ),
+  }));
 
   if (loading) {
     return (

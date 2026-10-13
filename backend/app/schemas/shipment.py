@@ -37,6 +37,22 @@ class ShipmentUpdate(BaseModel):
     current_longitude: float | None = None
 
 
+class RouteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    origin: str
+    destination: str
+    route_code: str | None = None
+    
+# class ShipmentResponse(ShipmentBase):
+#     model_config = ConfigDict(from_attributes=True)
+
+#     id: int
+#     shipment_reference: str
+#     created_at: datetime
+#     updated_at: datetime
+
 class ShipmentResponse(ShipmentBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -44,3 +60,4 @@ class ShipmentResponse(ShipmentBase):
     shipment_reference: str
     created_at: datetime
     updated_at: datetime
+    route: RouteResponse | None = None

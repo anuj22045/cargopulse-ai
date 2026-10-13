@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import ShipmentRouteMap from "../components/maps/ShipmentRouteMap";
 
 import {
   ArrowLeft,
@@ -25,6 +26,7 @@ import {
   getShipmentPredictions,
   type AIPrediction,
 } from "../services/aiPredictionService";
+
 import {
   getShipmentSimulationEvents,
   type SimulationEvent,
@@ -46,6 +48,14 @@ import { RiskHistoryChart } from "../components/charts/RiskHistoryChart";
 import { ETAHistoryChart } from "../components/charts/ETAHistoryChart";
 import { SpeedDistanceChart } from "../components/charts/SpeedDistanceChart";
 import { EventTimeline } from "../components/charts/EventTimeline";
+
+// _______________________________Explaninable AI________________________________
+import {
+  getShipmentExplanation,
+  type ShipmentExplanation,
+} from "../services/shapExplanationService";
+
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -111,9 +121,7 @@ function SectionCard({
         <Icon className="h-4 w-4 text-amber-500" />
         <div>
           <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
-          {subtitle && (
-            <p className="text-[10px] text-slate-400">{subtitle}</p>
-          )}
+          {subtitle && <p className="text-[10px] text-slate-400">{subtitle}</p>}
         </div>
       </div>
       <div className="px-5 py-4">{children}</div>
@@ -133,17 +141,17 @@ function RiskGauge({ probability }: { probability: number }) {
   const dashOffset = dashArray * (1 - pct);
   const rotate = -225; // start from bottom-left
 
-  const color =
-    pct >= 0.7 ? "#ef4444" : pct >= 0.4 ? "#f59e0b" : "#22c55e";
-  const label =
-    pct >= 0.7 ? "High Risk" : pct >= 0.4 ? "Med Risk" : "Low Risk";
+  const color = pct >= 0.7 ? "#ef4444" : pct >= 0.4 ? "#f59e0b" : "#22c55e";
+  const label = pct >= 0.7 ? "High Risk" : pct >= 0.4 ? "Med Risk" : "Low Risk";
 
   return (
     <div className="flex flex-col items-center">
       <svg width="88" height="72" viewBox="0 0 88 72">
         {/* Track */}
         <circle
-          cx="44" cy="52" r={radius}
+          cx="44"
+          cy="52"
+          r={radius}
           fill="none"
           stroke="#e2e8f0"
           strokeWidth="8"
@@ -154,7 +162,9 @@ function RiskGauge({ probability }: { probability: number }) {
         />
         {/* Fill */}
         <circle
-          cx="44" cy="52" r={radius}
+          cx="44"
+          cy="52"
+          r={radius}
           fill="none"
           stroke={color}
           strokeWidth="8"
@@ -165,7 +175,14 @@ function RiskGauge({ probability }: { probability: number }) {
           style={{ transition: "stroke-dashoffset 0.6s ease" }}
         />
         {/* Center text */}
-        <text x="44" y="56" textAnchor="middle" fontSize="13" fontWeight="700" fill={color}>
+        <text
+          x="44"
+          y="56"
+          textAnchor="middle"
+          fontSize="13"
+          fontWeight="700"
+          fill={color}
+        >
           {(pct * 100).toFixed(0)}%
         </text>
       </svg>
@@ -208,13 +225,25 @@ function ShipmentDetails() {
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [events, setEvents] = useState<ShipmentEvent[]>([]);
   const [predictions, setPredictions] = useState<AIPrediction[]>([]);
-  const [simulationEvents, setSimulationEvents] = useState<SimulationEvent[]>([]);
-  const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
+  const [simulationEvents, setSimulationEvents] = useState<SimulationEvent[]>(
+    [],
+  );
+  const [recommendations, setRecommendations] = useState<AIRecommendation[]>(
+    [],
+  );
   const [decisions, setDecisions] = useState<DecisionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState<ShipmentExplanation | null>(
+    null,
+  );
+  const [explanationLoading, setExplanationLoading] = useState(false);
+
+  const [explanationError, setExplanationError] = useState<string | null>(null);
 
   const numericShipmentId = shipmentId ? Number(shipmentId) : null;
+
+  const [showAllShap, setShowAllShap] = useState(false);
 
   const {
     riskHistory,
@@ -234,6 +263,7 @@ function ShipmentDetails() {
         setLoading(false);
         return;
       }
+
       const id = Number(shipmentId);
 
       if (Number.isNaN(id)) {
@@ -242,8 +272,26 @@ function ShipmentDetails() {
         return;
       }
 
+      // Load SHAP explanation independently
+      setExplanationLoading(true);
+      setExplanationError(null);
+
       try {
-        const id = Number(shipmentId);
+        const explanationData = await getShipmentExplanation(id);
+
+        setExplanation(explanationData);
+      } catch (err) {
+        setExplanationError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load shipment explanation",
+        );
+      } finally {
+        setExplanationLoading(false);
+      }
+
+      // Load the existing shipment data
+      try {
         const shipmentData = await getShipment(id);
         const eventData = await getShipmentEvents(id);
         const predictionData = await getShipmentPredictions(id);
@@ -259,7 +307,7 @@ function ShipmentDetails() {
         setDecisions(decisionData);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to load shipment"
+          err instanceof Error ? err.message : "Failed to load shipment",
         );
       } finally {
         setLoading(false);
@@ -276,7 +324,10 @@ function ShipmentDetails() {
         <div className="h-24 animate-pulse rounded-xl bg-slate-200" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-200" />
+            <div
+              key={i}
+              className="h-20 animate-pulse rounded-xl bg-slate-200"
+            />
           ))}
         </div>
       </div>
@@ -292,19 +343,17 @@ function ShipmentDetails() {
   }
 
   if (!shipment) {
-    return (
-      <p className="text-sm text-slate-500">Shipment not found.</p>
-    );
+    return <p className="text-sm text-slate-500">Shipment not found.</p>;
   }
 
   const latestPrediction =
-  predictions.length > 0
-    ? [...predictions].sort(
-        (a, b) =>
-          new Date(b.prediction_time).getTime() -
-          new Date(a.prediction_time).getTime()
-      )[0]
-    : null;
+    predictions.length > 0
+      ? [...predictions].sort(
+          (a, b) =>
+            new Date(b.prediction_time).getTime() -
+            new Date(a.prediction_time).getTime(),
+        )[0]
+      : null;
 
   return (
     <div className="space-y-5">
@@ -402,7 +451,7 @@ function ShipmentDetails() {
         )}
       </div>
 
-            {/* Current AI Prediction */}
+      {/* Current AI Prediction */}
       {latestPrediction && (
         <SectionCard
           title="Current AI Prediction"
@@ -454,7 +503,129 @@ function ShipmentDetails() {
         </SectionCard>
       )}
 
+      {/* SHAP Explainability */}
+      <SectionCard
+        title="Why Is This Shipment at Risk?"
+        icon={Brain}
+        subtitle="SHAP-based explanation of the AI delay prediction"
+      >
+        {explanationLoading ? (
+          <p className="text-sm text-slate-500">
+            Analyzing shipment risk factors...
+          </p>
+        ) : explanationError ? (
+          <p className="text-sm text-red-600">{explanationError}</p>
+        ) : !explanation || explanation.feature_importances.length === 0 ? (
+          <p className="text-sm text-slate-500">
+            No explanation is available for this shipment.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {/* Explanation summary */}
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="text-sm font-semibold text-slate-800">
+                Main risk factors
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Positive SHAP values push the model score higher. Negative
+                values push it lower.
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                Output space: {explanation.output_space}
+              </p>
+            </div>
+
+            {/* Feature contributions */}
+            <div className="space-y-4">
+              {(showAllShap
+                ? explanation.feature_importances
+                : explanation.feature_importances.slice(0, 3)
+              ).map((item) => {
+                const magnitude = Math.abs(item.value);
+                const maxMagnitude = Math.max(
+                  ...explanation.feature_importances.map((feature) =>
+                    Math.abs(feature.value),
+                  ),
+                  0.000001,
+                );
+
+                const isPositive = item.value > 0;
+                const isNegative = item.value < 0;
+
+                const barColor = isPositive
+                  ? "bg-red-500"
+                  : isNegative
+                    ? "bg-green-500"
+                    : "bg-slate-400";
+
+                const textColor = isPositive
+                  ? "text-red-600"
+                  : isNegative
+                    ? "text-green-600"
+                    : "text-slate-500";
+
+                return (
+                  <div key={item.feature}>
+                    <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-medium capitalize text-slate-700">
+                        {item.feature.replaceAll("_", " ")}
+                      </span>
+
+                      <span className={`text-xs font-semibold ${textColor}`}>
+                        {item.value > 0 ? "+" : ""}
+                        {item.value.toFixed(4)}
+                        {" · "}
+                        {item.impact}
+                      </span>
+                    </div>
+
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className={`h-full rounded-full ${barColor} transition-all duration-300`}
+                        style={{
+                          width: `${(magnitude / maxMagnitude) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Expand / collapse */}
+            {explanation.feature_importances.length > 3 && (
+              <button
+                type="button"
+                onClick={() => setShowAllShap((previous) => !previous)}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700"
+              >
+                {showAllShap ? (
+                  <>
+                    <ChevronUp className="h-4 w-4" />
+                    Show less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4" />
+                    View all {explanation.feature_importances.length} factors
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Interpretation note */}
+            <p className="text-xs leading-relaxed text-slate-400">
+              SHAP values are contributions in the model's raw-margin (log-odds)
+              space. They are not percentages or direct changes in delay
+              probability. Feature contributions explain the model output, not
+              necessarily causal effects.
+            </p>
+          </div>
+        )}
+      </SectionCard>
+
       {/* Info cards grid */}
+      <h2>Shipment Information</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <InfoCard
           icon={Truck}
@@ -467,7 +638,7 @@ function ShipmentDetails() {
           value={
             shipment.order_region && shipment.market
               ? `${shipment.order_region} · ${shipment.market}`
-              : shipment.order_region ?? shipment.market
+              : (shipment.order_region ?? shipment.market)
           }
         />
         <InfoCard
@@ -492,46 +663,38 @@ function ShipmentDetails() {
 
       {/* Financials */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <InfoCard icon={Activity} label="Customer Segment" value={shipment.customer_segment} />
-        <InfoCard icon={Activity} label="Sales" value={shipment.sales ? `$${shipment.sales}` : null} />
-        <InfoCard icon={Activity} label="Profit / Order" value={shipment.profit_per_order ? `$${shipment.profit_per_order}` : null} />
+        <InfoCard
+          icon={Activity}
+          label="Customer Segment"
+          value={shipment.customer_segment}
+        />
+        <InfoCard
+          icon={Activity}
+          label="Sales"
+          value={shipment.sales ? `$${shipment.sales}` : null}
+        />
+        <InfoCard
+          icon={Activity}
+          label="Profit / Order"
+          value={
+            shipment.profit_per_order ? `$${shipment.profit_per_order}` : null
+          }
+        />
       </div>
 
       {/* Map placeholder */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
+      {/* Route Map */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
           <Navigation className="h-4 w-4 text-amber-500" />
           <h2 className="text-sm font-semibold text-slate-800">Route Map</h2>
-          <span className="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
-            Phase 7 — Live tracking
-          </span>
+          <span className="ml-auto text-xs text-slate-500">Live tracking</span>
         </div>
-        <div className="relative flex h-52 items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-          {/* Grid pattern */}
-          <svg className="absolute inset-0 h-full w-full opacity-30" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
-                <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#94a3b8" strokeWidth="0.5" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-          {/* Route line placeholder */}
-          <svg className="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
-            <line x1="15%" y1="50%" x2="85%" y2="50%" stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 4" opacity="0.6" />
-            <circle cx="15%" cy="50%" r="6" fill="#22c55e" opacity="0.8" />
-            <circle cx="85%" cy="50%" r="6" fill="#ef4444" opacity="0.8" />
-          </svg>
-          <div className="z-10 flex flex-col items-center gap-2 text-center">
-            <MapPin className="h-8 w-8 text-slate-300" />
-            <p className="text-sm font-medium text-slate-500">Interactive map coming in Phase 7</p>
-            {shipment.current_latitude && shipment.current_longitude && (
-              <p className="text-xs text-slate-400">
-                Current position: {shipment.current_latitude.toFixed(4)}, {shipment.current_longitude.toFixed(4)}
-              </p>
-            )}
-          </div>
-        </div>
+
+        <ShipmentRouteMap
+          latitude={latestUpdate?.latitude ?? shipment.current_latitude}
+          longitude={latestUpdate?.longitude ?? shipment.current_longitude}
+        />
       </div>
 
       {/* ─── Day 13 Charts ──────────────────────────────────────────────────── */}
@@ -615,7 +778,8 @@ function ShipmentDetails() {
                   )}
                   {(event.latitude || event.longitude) && (
                     <p className="mt-0.5 text-xs text-slate-400">
-                      📍 {event.latitude?.toFixed(4)}, {event.longitude?.toFixed(4)}
+                      📍 {event.latitude?.toFixed(4)},{" "}
+                      {event.longitude?.toFixed(4)}
                     </p>
                   )}
                 </div>
@@ -628,7 +792,9 @@ function ShipmentDetails() {
       {/* AI Predictions */}
       <SectionCard title="AI Prediction History" icon={Brain}>
         {predictions.length === 0 ? (
-          <p className="text-sm text-slate-400">No predictions available yet.</p>
+          <p className="text-sm text-slate-400">
+            No predictions available yet.
+          </p>
         ) : (
           <div className="space-y-3">
             {predictions.map((p) => (
@@ -645,8 +811,8 @@ function ShipmentDetails() {
                           p.delay_probability >= 0.7
                             ? "bg-red-500"
                             : p.delay_probability >= 0.4
-                            ? "bg-amber-500"
-                            : "bg-green-500"
+                              ? "bg-amber-500"
+                              : "bg-green-500"
                         }`}
                         style={{ width: `${p.delay_probability * 100}%` }}
                       />
@@ -743,7 +909,9 @@ function ShipmentDetails() {
       {/* AI Recommendations */}
       <SectionCard title="AI Recommendations" icon={Lightbulb}>
         {recommendations.length === 0 ? (
-          <p className="text-sm text-slate-400">No recommendations available yet.</p>
+          <p className="text-sm text-slate-400">
+            No recommendations available yet.
+          </p>
         ) : (
           <div className="space-y-3">
             {recommendations.map((r) => (
@@ -774,9 +942,7 @@ function ShipmentDetails() {
                   {r.confidence_score != null && (
                     <span className="text-xs text-slate-500">
                       Confidence:{" "}
-                      <strong>
-                        {(r.confidence_score * 100).toFixed(0)}%
-                      </strong>
+                      <strong>{(r.confidence_score * 100).toFixed(0)}%</strong>
                     </span>
                   )}
                   <span className="text-xs text-slate-400">
@@ -809,7 +975,9 @@ function ShipmentDetails() {
                 {d.decision_reason && (
                   <div className="flex-1 min-w-[160px]">
                     <p className="text-xs text-slate-500">Reason</p>
-                    <p className="text-xs text-slate-700">{d.decision_reason}</p>
+                    <p className="text-xs text-slate-700">
+                      {d.decision_reason}
+                    </p>
                   </div>
                 )}
                 {d.actual_outcome && (
