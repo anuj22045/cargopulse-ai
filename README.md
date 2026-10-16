@@ -372,29 +372,6 @@ dependency_graph   — supply chain upstream/downstream impact graph
 
 ---
 
-## 🗺️ Roadmap
-
-- [x] Backend: FastAPI + PostgreSQL + SQLAlchemy + Alembic
-- [x] Deterministic simulation engine with weather & congestion scenarios
-- [x] APScheduler background ticks (30s interval)
-- [x] WebSocket real-time push to frontend
-- [x] Frontend: React 19 + TypeScript + Tailwind CSS v4
-- [x] Live dashboard with stat cards and charts
-- [x] Shipments list with filtering, search, pagination
-- [x] Shipment detail page with live graphs and event timeline
-- [x] XGBoost delay & ETA prediction models
-- [x] SHAP explainability layer
-- [ ] AI Recommendation Engine
-- [ ] What-If Simulator UI
-- [ ] Multi-objective Decision Optimizer
-- [ ] Supply Chain Dependency Graph visualization
-- [ ] RAG AI Copilot (LangChain + FAISS)
-- [ ] JWT Authentication & protected routes
-- [ ] Docker multi-container deployment
-- [ ] Decision Memory & outcome tracking
-
----
-
 ## 📄 License
 
 This project is licensed under the terms in the [`LICENSE`](./backend/LICENSE) file.
