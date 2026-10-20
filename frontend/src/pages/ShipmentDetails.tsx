@@ -31,10 +31,13 @@ import {
   getShipmentSimulationEvents,
   type SimulationEvent,
 } from "../services/simulationService";
+
 import {
   getShipmentRecommendations,
+  generateShipmentRecommendations,
   type AIRecommendation,
 } from "../services/aiRecommendationService";
+
 import {
   getShipmentDecisions,
   type DecisionHistory,
@@ -245,6 +248,25 @@ function ShipmentDetails() {
 
   const [showAllShap, setShowAllShap] = useState(false);
 
+  // #===========================
+  const [generatingRecommendations, setGeneratingRecommendations] =
+    useState(false);
+  const handleGenerateRecommendations = async () => {
+    if (!shipmentId) return;
+
+    try {
+      setGeneratingRecommendations(true);
+
+      const data = await generateShipmentRecommendations(Number(shipmentId));
+
+      setRecommendations(data);
+    } catch (error) {
+      console.error("Failed to generate recommendations:", error);
+    } finally {
+      setGeneratingRecommendations(false);
+    }
+  };
+  // ========================================================
   const {
     riskHistory,
     etaHistory,
@@ -908,6 +930,16 @@ function ShipmentDetails() {
 
       {/* AI Recommendations */}
       <SectionCard title="AI Recommendations" icon={Lightbulb}>
+        <button
+          type="button"
+          onClick={handleGenerateRecommendations}
+          disabled={generatingRecommendations}
+          className="mb-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {generatingRecommendations
+            ? "Generating..."
+            : "Generate / Regenerate Recommendations"}
+        </button>
         {recommendations.length === 0 ? (
           <p className="text-sm text-slate-400">
             No recommendations available yet.
@@ -928,9 +960,10 @@ function ShipmentDetails() {
                 <div className="mt-2 flex flex-wrap gap-4">
                   {r.expected_delay_reduction != null && (
                     <span className="text-xs text-slate-500">
-                      Delay reduction:{" "}
+                      Delay probability reduction:{" "}
                       <strong className="text-green-600">
-                        {r.expected_delay_reduction}h
+                        {r.expected_delay_reduction.toFixed(2)} percentage
+                        points
                       </strong>
                     </span>
                   )}
