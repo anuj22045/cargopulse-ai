@@ -1,3 +1,4 @@
+
 import { apiClient } from "../api/client";
 
 export interface AIRecommendation {
@@ -12,9 +13,20 @@ export interface AIRecommendation {
 }
 
 export async function getShipmentRecommendations(
-    shipmentId: number    
+    shipmentId: number
 ): Promise<AIRecommendation[]> {
     return apiClient(
-    `/ai-recommendations/shipment/${shipmentId}`
+        `/ai-recommendations/shipment/${shipmentId}`
+    );
+}
+
+export async function generateShipmentRecommendations(
+    shipmentId: number
+): Promise<AIRecommendation[]> {
+    return apiClient(
+        `/ai-recommendations/generate/shipment/${shipmentId}`,
+        {
+            method: "POST",
+        }
     );
 }
