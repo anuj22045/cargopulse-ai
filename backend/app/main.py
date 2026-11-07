@@ -29,6 +29,9 @@ from app.api.history import router as history_router
 
 
 from app.api.shap_explanations import router as shap_explanation_router
+from app.api.what_if import router as what_if_router
+from app.api.dependency_graph import router as dependency_graph_router
+from app.api.optimizer import router as optimizer_router
 
 
 
@@ -83,6 +86,9 @@ app.include_router(websocket_router)
 app.include_router(history_router)
 app.include_router(simulation.router)
 app.include_router(shap_explanation_router)
+app.include_router(what_if_router)
+app.include_router(dependency_graph_router)
+app.include_router(optimizer_router)
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(

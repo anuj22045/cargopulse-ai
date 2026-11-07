@@ -1,6 +1,6 @@
 # This service layer contains the database logic for creating, reading, updating, and deleting shipments.
 from sqlalchemy import case, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models import Shipment
 from app.schemas import ShipmentCreate, ShipmentUpdate
@@ -11,8 +11,10 @@ def get_shipment(
     shipment_id: int
 ) -> Shipment | None:
 
-    statement = select(Shipment).where(
-        Shipment.id == shipment_id
+    statement = (
+        select(Shipment)
+        .options(joinedload(Shipment.route))
+        .where(Shipment.id == shipment_id)
     )
 
     return db.execute(statement).scalar_one_or_none()
@@ -25,6 +27,7 @@ def get_shipments(
     shipping_mode: str | None = None,
     shipment_status: str | None = None,
     search: str | None = None,
+    simulation_enabled: bool | None = None,
 ) -> list[Shipment]:
 
     statement = select(Shipment)
@@ -37,6 +40,11 @@ def get_shipments(
     if shipment_status:
         statement = statement.where(
             Shipment.shipment_status == shipment_status
+        )
+
+    if simulation_enabled is not None:
+        statement = statement.where(
+            Shipment.simulation_enabled.is_(simulation_enabled)
         )
 
     if search:

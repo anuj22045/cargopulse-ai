@@ -34,7 +34,8 @@ export async function getShipments(
   limit: number = 10,
   shippingMode?: string,
   shipmentStatus?: string,
-  search?: string
+  search?: string,
+  simulationEnabled?: boolean
 ): Promise<Shipment[]> {
 
   const params = new URLSearchParams();
@@ -52,6 +53,10 @@ export async function getShipments(
 
   if (search) {
     params.append("search", search);
+  }
+
+  if (simulationEnabled !== undefined) {
+    params.append("simulation_enabled", String(simulationEnabled));
   }
 
   return apiClient(
