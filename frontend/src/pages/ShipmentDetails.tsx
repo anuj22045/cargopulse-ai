@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import ShipmentRouteMap from "../components/maps/ShipmentRouteMap";
-
+import { getPortCoordinates } from "../utils/portCoordinates";
 import {
   ArrowLeft,
   MapPin,
@@ -704,18 +704,21 @@ function ShipmentDetails() {
         />
       </div>
 
-      {/* Map placeholder */}
       {/* Route Map */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <Navigation className="h-4 w-4 text-amber-500" />
           <h2 className="text-sm font-semibold text-slate-800">Route Map</h2>
-          <span className="ml-auto text-xs text-slate-500">Live tracking</span>
+          <span className="ml-auto text-xs text-slate-500">Maritime route</span>
         </div>
 
         <ShipmentRouteMap
           latitude={latestUpdate?.latitude ?? shipment.current_latitude}
           longitude={latestUpdate?.longitude ?? shipment.current_longitude}
+          originLatitude={getPortCoordinates(shipment.route?.origin)?.latitude ?? null}
+          originLongitude={getPortCoordinates(shipment.route?.origin)?.longitude ?? null}
+          destinationLatitude={getPortCoordinates(shipment.route?.destination)?.latitude ?? null}
+          destinationLongitude={getPortCoordinates(shipment.route?.destination)?.longitude ?? null}
         />
       </div>
 

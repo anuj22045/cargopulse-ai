@@ -6,12 +6,22 @@ import {
   Bell,
   User,
   Zap,
+  FlaskConical,
+  Target,
+  GitBranch,
 } from "lucide-react";
 
-const navItems = [
+const navMain = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/shipments", label: "Shipments", icon: Package, end: false },
   { to: "/analytics", label: "Analytics", icon: BarChart2, end: false },
+  { to: "/simulator", label: "Simulator", icon: FlaskConical, end: false },
+];
+
+/** Day 17 AI Decision Engine tools */
+const navAI = [
+  { to: "/optimizer", label: "Optimizer", icon: Target, end: false },
+  { to: "/dependency-graph", label: "Dep. Graph", icon: GitBranch, end: false },
 ];
 
 function MainLayout() {
@@ -22,6 +32,9 @@ function MainLayout() {
     if (location.pathname.startsWith("/shipments/")) return "Shipment Details";
     if (location.pathname === "/shipments") return "Shipments";
     if (location.pathname === "/analytics") return "Analytics";
+    if (location.pathname === "/simulator") return "What-If Simulator";
+    if (location.pathname === "/optimizer") return "Multi-Objective Optimizer";
+    if (location.pathname === "/dependency-graph") return "Supply Chain Dependency Graph";
     return "CargoPulse AI";
   }
 
@@ -47,7 +60,29 @@ function MainLayout() {
           <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
             Main Menu
           </p>
-          {navItems.map(({ to, label, icon: Icon, end }) => (
+          {navMain.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
+                  isActive
+                    ? "bg-amber-500 text-white"
+                    : "text-slate-400 hover:bg-slate-700 hover:text-white"
+                }`
+              }
+            >
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              {label}
+            </NavLink>
+          ))}
+
+          {/* Day 17 AI tools */}
+          <p className="mb-2 mt-4 px-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
+            AI Decision Engine
+          </p>
+          {navAI.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}

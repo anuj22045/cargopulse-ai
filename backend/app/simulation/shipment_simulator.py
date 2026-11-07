@@ -8,11 +8,11 @@ then updates the shipment and stores simulation history in the database.
 Business rules applied each tick
 ─────────────────────────────────
 Weather impact on speed
-  WEATHER_SPEED_MODIFIER (defined in route_engine.py):
+WEATHER_SPEED_MODIFIER (defined in route_engine.py):
     Clear: 1.0 | Rain: 0.85 | Heavy Rain: 0.65 | Storm: 0.4 | Fog: 0.7
 
 Congestion impact on port wait time (added to delay, not speed here):
-  CONGESTION_WAIT_HOURS:
+CONGESTION_WAIT_HOURS:
     Low: 0 | Medium: 4 | High: 12 | Critical: 24
 """
 

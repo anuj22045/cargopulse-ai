@@ -33,6 +33,7 @@ def read_shipments(
     shipping_mode: str | None = None,
     shipment_status: str | None = None,
     search: str | None = None,
+    simulation_enabled: bool | None = None,
     db: Session = Depends(get_db)
 ):
     if skip < 0:
@@ -53,7 +54,8 @@ def read_shipments(
         limit=limit,
         shipping_mode=shipping_mode,
         shipment_status=shipment_status,
-        search=search
+        search=search,
+        simulation_enabled=simulation_enabled,
     )
 
 
