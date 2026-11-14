@@ -141,3 +141,6 @@ def database_health_check(db: Session = Depends(get_db)):
 
 #to run postgresql
 # psql -U postgres -d cargopulse_ai
+
+#to activate the terminal 
+# .\.venv\Scripts\Activate.ps1
