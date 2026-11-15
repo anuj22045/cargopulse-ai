@@ -117,7 +117,6 @@ def health_check():
         "service": "CargoPulse AI API"
     }
 
-
 @app.get("/health/db")
 def database_health_check(db: Session = Depends(get_db)):
     try:
@@ -144,3 +143,5 @@ def database_health_check(db: Session = Depends(get_db)):
 
 #to activate the terminal 
 # .\.venv\Scripts\Activate.ps1
+#to run frontend file 
+#npm run dev
